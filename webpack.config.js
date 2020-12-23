@@ -29,18 +29,25 @@ module.exports = {
     rules: [
       {
         test: /\.js$/,
-        loader: "babel-loader",
-      },
-      {
-        test: /index\.js$/,
-        loader: 'string-replace-loader',
-        options: {
-          multiple: [
-            { search: "'/tex.wasm'", replace: "'/ef253ef29e2f057334f77ead7f06ed8f22607d38.wasm'" },
-            { search: "'/core.dump.gz'", replace: "'/7620f557a41f2bf40820e76ba1fd4d89a484859d.gz'" }
-          ]
+        exclude: /node_modules/,
+        use: {
+          loader: 'babel-loader',
+          options: {
+              presets: ['@babel/preset-env'],
+              plugins: [['@babel/plugin-transform-runtime']]
+          }
         }
-      }      
+      }
+      //{
+      //  test: /index\.js$/,
+      //  loader: 'string-replace-loader',
+      //  options: {
+      //    multiple: [
+      //      { search: "'/tex.wasm'", replace: "'/e412953e46efd2b8af997ad3c5b1c32c0b206f2d.wasm'" },
+      //      { search: "'/core.dump.gz'", replace: "'/a9fb51a852b7e870033151a083ca8671a0adcb6a.gz'" }
+      //    ]
+      //  }
+      //}
     ]
   },
   plugins: [

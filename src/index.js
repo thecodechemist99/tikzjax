@@ -1,124 +1,146 @@
-import { dvi2html } from 'dvi2html';
+import { dvi2html } from '../../dvi2html';
 import { Writable } from 'stream';
 import * as library from './library';
 import pako from 'pako';
-import { ReadableStream } from "web-streams-polyfill";
 import fetchStream from 'fetch-readablestream';
 
 // document.currentScript polyfill
 if (document.currentScript === undefined) {
-  var scripts = document.getElementsByTagName('script');
-  document.currentScript = scripts[scripts.length - 1];
+	var scripts = document.getElementsByTagName('script');
+	document.currentScript = scripts[scripts.length - 1];
 }
 
-// Determine where we were loaded from; we'll use that to find a
-// tikzwolke server that can handle our POSTing tikz code
+// Determine where this script was loaded from. We will use that to find the wasm and dump files.
 var url = new URL(document.currentScript.src);
-// host includes the port
-var host = url.host;
-var urlRoot = url.protocol + '//' + host;
+var urlRoot = url.href.replace(/\/tikzjax(\.min)?\.js$/, '');
 
 let pages = 1000;
 var coredump;
 var code;
 
 async function load() {
-  let tex = await fetch(urlRoot + '/tex.wasm');
-  code = await tex.arrayBuffer();
+	let tex = await fetch(urlRoot + '/tex.wasm');
+	code = await tex.arrayBuffer();
 
-  let response = await fetchStream(urlRoot + '/core.dump.gz');
-  const reader = response.body.getReader();
-  const inf = new pako.Inflate();
-  
-  try {
-    while (true) {
-      const {done, value} = await reader.read();
-      inf.push(value, done);
-      if (done) break;
-    }
-  }
-  finally {
-    reader.releaseLock();
-  }
+	let response = await fetchStream(urlRoot + '/core.dump.gz');
+	const reader = response.body.getReader();
+	const inf = new pako.Inflate();
 
-  coredump = new Uint8Array( inf.result, 0, pages*65536 );
+	try {
+		while (true) {
+			const {done, value} = await reader.read();
+			inf.push(value, done);
+			if (done) break;
+		}
+	}
+	finally {
+		reader.releaseLock();
+	}
+
+	coredump = new Uint8Array(inf.result, 0, pages*65536);
 }
 
 function copy(src)  {
-  var dst = new Uint8Array(src.length);
-  dst.set(src);
-  return dst;
+	var dst = new Uint8Array(src.length);
+	dst.set(src);
+	return dst;
 }
 
-async function tex(input) {
-  if (input.match('\\\\begin *{document}') === null) {
-    input = '\\begin{document}\n' + input;
-  }
-  input = input + '\n\\end{document}\n';
+async function tex(input, tikzLibraries, tikzOptions) {
+	input = (tikzLibraries ? ('\\usetikzlibrary{' + tikzLibraries + '}') : '') +
+		'\\begin{document}\\begin{tikzpicture}' +
+		(tikzOptions ? ('[' + tikzOptions + ']') : '') + '\n' + input + '\n\\end{tikzpicture}\\end{document}\n';
 
-  library.deleteEverything();
-  library.writeFileSync( "sample.tex", Buffer.from(input) );
+	library.deleteEverything();
+	library.writeFileSync("sample.tex", Buffer.from(input));
 
-  let memory = new WebAssembly.Memory({initial: pages, maximum: pages});
-  
-  let buffer = new Uint8Array( memory.buffer, 0, pages*65536 );
-  buffer.set( copy(coredump) );
-  
-  library.setMemory( memory.buffer );
-  library.setInput( " sample.tex \n\\end\n" );
-  
-  let results = await WebAssembly.instantiate(code, { library: library,
-                                                      env: { memory: memory }
-                                                    });
+	let memory = new WebAssembly.Memory({ initial: pages, maximum: pages });
 
-  return library.readFileSync( "sample.dvi" );
+	let buffer = new Uint8Array(memory.buffer, 0, pages*65536);
+	buffer.set(copy(coredump));
+
+	library.setMemory(memory.buffer);
+	library.setInput(" sample.tex \n\\end\n");
+
+	await WebAssembly.instantiate(code, {
+		library: library,
+		env: { memory: memory }
+	});
+
+	return library.readFileSync("sample.dvi");
 }
 
-window.onload = async function(){
-  await load();
-  
-  async function process(elt){
-    var text = elt.childNodes[0].nodeValue;
+window.addEventListener('load', async function() {
+	await load();
 
-    var div = document.createElement('div');    
-    
-    let dvi = await tex(text);
-    
-    let html = "";  
-    const page = new Writable({
-      write(chunk, encoding, callback) {
-        html = html + chunk.toString();
-        callback();
-      }
-    });
+	async function process(elt) {
+		var text = elt.childNodes[0].nodeValue;
 
-    async function* streamBuffer() {
-      yield Buffer.from(dvi);
-      return;
-    }  
+		var div = document.createElement('div');
+		// Transfer any classes set for the script element to the new div.
+		div.classList = elt.classList;
+		div.classList.add("tikzjax-container");
 
-    let machine = await dvi2html( streamBuffer(), page );
-    div.style.display = 'flex';
-    div.style.width = machine.paperwidth.toString() + "pt";
-    div.style.height = machine.paperheight.toString() + "pt";
-    div.style['align-items'] = 'center';
-    div.style['justify-content'] = 'center';        
+		div.style.width = elt.dataset.width || 100 + "px";
+		div.style.height = elt.dataset.height || 100 + "px";
+		div.style.position = 'relative';
 
-    div.innerHTML = html;
-    let svg = div.getElementsByTagName('svg');
-    svg[0].setAttribute("width", machine.paperwidth.toString() + "pt");
-    svg[0].setAttribute("height", machine.paperheight.toString() + "pt");
-    svg[0].setAttribute("viewBox", `-72 -72 ${machine.paperwidth} ${machine.paperheight}`);
+		// Add another div with a loading background and another div to show a spinning loader class.
+		var loaderBackgroundDiv = document.createElement('div');
+		loaderBackgroundDiv.classList.add('tj-loader-background');
+		div.appendChild(loaderBackgroundDiv);
+		var loaderDiv = document.createElement('div');
+		loaderDiv.classList.add('tj-loader-spinner');
+		div.appendChild(loaderDiv);
 
-    elt.parentNode.replaceChild(div, elt);
-  };
+		elt.replaceWith(div);
 
-  var scripts = document.getElementsByTagName('script');
-  var tikzScripts = Array.prototype.slice.call(scripts).filter(
-    (e) => (e.getAttribute('type') === 'text/tikz'));
+		let dvi;
+		try {
+			dvi = await tex(text, elt.dataset.tikzLibraries, elt.dataset.tikzOptions);
+		} catch (err) {
+			div.style.width = 'unset';
+			div.style.height = 'unset';
+			console.log(err);
+			div.innerHTML = "Error generating image."
+			return;
+		}
 
-  tikzScripts.reduce( async (promise, element) => {
-    await promise;
-    return process(element);
-  }, Promise.resolve());
-};
+		let html = "";
+		const page = new Writable({
+			write(chunk, encoding, callback) {
+				html = html + chunk.toString();
+				callback();
+			}
+		});
+
+		async function* streamBuffer() {
+			yield Buffer.from(dvi);
+			return;
+		}
+
+		let machine = await dvi2html(streamBuffer(), page);
+
+		div.style.width = elt.dataset.width || machine.paperwidth.toString() + "pt";
+		div.style.height = elt.dataset.height || machine.paperheight.toString() + "pt";
+		//div.style.cursor = "pointer";
+		//div.addEventListener("click", () => console.log("testing events"));
+
+		div.innerHTML = html;
+		let svg = div.getElementsByTagName('svg');
+		svg[0].style.width = '100%';
+		svg[0].style.height = '100%';
+		svg[0].setAttribute("width", machine.paperwidth.toString() + "pt");
+		svg[0].setAttribute("height", machine.paperheight.toString() + "pt");
+		svg[0].setAttribute("viewBox", `-72 -72 ${machine.paperwidth} ${machine.paperheight}`);
+	};
+
+	var scripts = document.getElementsByTagName('script');
+	var tikzScripts = Array.prototype.slice.call(scripts).filter(
+		(e) => (e.getAttribute('type') === 'text/tikz'));
+
+	tikzScripts.reduce(async (promise, element) => {
+		await promise;
+		return process(element);
+	}, Promise.resolve());
+});

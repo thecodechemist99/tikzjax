@@ -1,4 +1,4 @@
-import { tfmData } from 'dvi2html';
+import { tfmData } from '../../dvi2html';
 
 /****************************************************************/
 // fake files
@@ -81,7 +81,6 @@ function readSync( file, buffer, pointer, length, seek )
 }
 
 /****************************************************************/
-// fake process.write.stdout
 
 var consoleBuffer = "";
 function writeToConsole(x) {
@@ -94,11 +93,6 @@ function writeToConsole(x) {
     }
   }
 }
-var process = {
-  stdout: {
-    write: writeToConsole
-  }
-};
 
 /****************************************************************/
 // setup
@@ -146,7 +140,7 @@ export function printString(descriptor, x) {
     var string = String.fromCharCode.apply(null, buffer);
 
     if (file.stdout) {
-      process.stdout.write(string);
+      writeToConsole(string);
       return;
     }
 
@@ -159,7 +153,7 @@ export function printBoolean(descriptor, x) {
     var result = x ? "TRUE" : "FALSE";
 
     if (file.stdout) {
-      process.stdout.write(result);
+      writeToConsole(result);
       return;
     }
 
@@ -168,7 +162,7 @@ export function printBoolean(descriptor, x) {
 export function printChar(descriptor, x) {
   var file = (descriptor < 0) ? {stdout:true} : files[descriptor];        
   if (file.stdout) {
-    process.stdout.write(String.fromCharCode(x));
+    writeToConsole(String.fromCharCode(x));
     return;
   }
   
@@ -180,7 +174,7 @@ export function printChar(descriptor, x) {
 export function printInteger(descriptor, x) {
   var file = (descriptor < 0) ? {stdout:true} : files[descriptor];            
   if (file.stdout) {
-    process.stdout.write(x.toString());
+    writeToConsole(x.toString());
     return;
   }
 
@@ -190,7 +184,7 @@ export function printInteger(descriptor, x) {
 export function printFloat(descriptor, x) {
   var file = (descriptor < 0) ? {stdout:true} : files[descriptor];                
   if (file.stdout) {
-    process.stdout.write(x.toString());
+    writeToConsole(x.toString());
     return;
   }
 
@@ -201,11 +195,17 @@ export function printNewline(descriptor, x) {
   var file = (descriptor < 0) ? {stdout:true} : files[descriptor];
   
   if (file.stdout) {
-    process.stdout.write("\n");
+    writeToConsole("\n");
     return;
   }
 
   writeSync( file, Buffer.from("\n"));
+}
+
+export function enterFunction(x, stack) {
+}
+
+export function leaveFunction(x, stack) {
 }
 
 export function reset(length, pointer) {
@@ -214,7 +214,8 @@ export function reset(length, pointer) {
 
     filename = filename.replace(/ +$/g,'');
     filename = filename.replace(/^\*/,'');    
-    filename = filename.replace(/^TeXfonts:/,'');    
+    filename = filename.replace(/"/g, '');
+	filename = filename.replace(/^TeXfonts:/,'');
 
     if (filename == 'TeXformats:TEX.POOL')
       filename = "tex.pool";

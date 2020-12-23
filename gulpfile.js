@@ -18,10 +18,12 @@ var s3 = require('gulp-s3-upload')(
 gulp.task('webpack', function() {
   return gulp.src('src/index.js')
     .pipe(webpack( webpackConfig ))
-    .pipe(gulp.dest('dist/v1'));
+    .pipe(gulp.dest('dist'));
 });
 
-// download('http://mirrors.ctan.org/fonts/cm/ps-type1/bakoma.zip')
+gulp.task('download-fonts',
+    () => download('http://mirrors.ctan.org/fonts/cm/ps-type1/bakoma.zip').pipe(gulp.dest('./'))
+);
 
 gulp.task('fonts', 
           function() {
@@ -55,24 +57,24 @@ function sha1(filename) {
 }
 
 gulp.task('copy-core', async function() {
-  let coredump = await sha1('core.dump.gz');
+  //let coredump = await sha1('core.dump.gz');
 
   return gulp.src('core.dump.gz')
-    .pipe(rename(`${coredump}.gz` ))
+    //.pipe(rename(`${coredump}.gz` ))
     .pipe(gulp.dest('dist'));
 });
 
 gulp.task('copy-wasm', async function() {
-  let wasm = await sha1('tex.wasm');
+  //let wasm = await sha1('tex.wasm');
 
   return gulp.src('tex.wasm')
-    .pipe(rename(`${wasm}.wasm` ))
+    //.pipe(rename(`${wasm}.wasm` ))
     .pipe(gulp.dest('dist'));
 });
 
 gulp.task('copy-css', function() {
-  return gulp.src('fonts.css')
-    .pipe(gulp.dest('dist/v1'));
+  return gulp.src(['fonts.css', 'loader.css'])
+    .pipe(gulp.dest('dist'));
 });
 
 gulp.task("upload", function() {
