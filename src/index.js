@@ -147,8 +147,6 @@ window.addEventListener('load', async function() {
 
 		div.style.width = elt.dataset.width || machine.paperwidth.toString() + "pt";
 		div.style.height = elt.dataset.height || machine.paperheight.toString() + "pt";
-		//div.style.cursor = "pointer";
-		//div.addEventListener("click", () => console.log("testing events"));
 
 		div.innerHTML = html;
 		let svg = div.getElementsByTagName('svg');
