@@ -4,9 +4,9 @@
   "description": "",
   "main": "app.js",
   "scripts": {
-    "start": "node ./app.js",
     "minify": "uglifyjs ./dist/tikzjax.js -c -m -o ./dist/tikzjax.min.js",
-    "prebuild": "gulp copy-core && gulp copy-wasm",
+    "gen-tikz-libs": "node genTikzLibs.js",
+    "prebuild": "gulp copy-core && gulp copy-wasm && npm run gen-tikz-libs",
     "build": "gulp webpack && npm run-script minify",
     "postbuild": "gulp copy-css && gulp fonts"
   },

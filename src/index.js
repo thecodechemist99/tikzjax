@@ -46,12 +46,32 @@ function copy(src)  {
 	return dst;
 }
 
+async function loadTikzLibraries(libsList) {
+	for (const lib of libsList) {
+		let response = await fetch(urlRoot + "/libs/" + lib + ".json.gz");
+		if (response.ok) {
+			let data = await response.arrayBuffer();
+			let filesystem = JSON.parse(pako.inflate(data, { to: 'string' }));
+			for (const [file, buffer] of Object.entries(filesystem)) {
+				if (!file) continue;
+				library.writeFileSync(file, buffer);
+			}
+		} else {
+			throw `Unable to load tikz library ${lib}.  File not available.`;
+		}
+	}
+}
+
 async function tex(input, tikzLibraries, tikzOptions) {
 	input = (tikzLibraries ? ('\\usetikzlibrary{' + tikzLibraries + '}') : '') +
 		'\\begin{document}\\begin{tikzpicture}' +
 		(tikzOptions ? ('[' + tikzOptions + ']') : '') + '\n' + input + '\n\\end{tikzpicture}\\end{document}\n';
 
 	library.deleteEverything();
+
+	// Load requested tikz libraries.
+	await loadTikzLibraries(tikzLibraries.split(","));
+
 	library.writeFileSync("sample.tex", Buffer.from(input));
 
 	let memory = new WebAssembly.Memory({ initial: pages, maximum: pages });
@@ -71,11 +91,9 @@ async function tex(input, tikzLibraries, tikzOptions) {
 }
 
 window.addEventListener('load', async function() {
-	await load();
+	var loadPromise = load();
 
-	async function process(elt) {
-		var text = elt.childNodes[0].nodeValue;
-
+	async function setupLoader(elt) {
 		var div = document.createElement('div');
 		// Transfer any classes set for the script element to the new div.
 		div.classList = elt.classList;
@@ -94,6 +112,12 @@ window.addEventListener('load', async function() {
 		div.appendChild(loaderDiv);
 
 		elt.replaceWith(div);
+		elt.div = div;
+	}
+
+	async function process(elt) {
+		var text = elt.childNodes[0].nodeValue;
+		var div = elt.div;
 
 		let dvi;
 		try {
@@ -138,6 +162,10 @@ window.addEventListener('load', async function() {
 	var scripts = document.getElementsByTagName('script');
 	var tikzScripts = Array.prototype.slice.call(scripts).filter(
 		(e) => (e.getAttribute('type') === 'text/tikz'));
+
+	tikzScripts.forEach(async element => setupLoader(element));
+
+	await loadPromise;
 
 	tikzScripts.reduce(async (promise, element) => {
 		await promise;

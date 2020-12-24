@@ -3,11 +3,12 @@ import { tfmData } from '../../dvi2html';
 /****************************************************************/
 // fake files
 
-import filesystem from './filesystem.json';
+var filesystem = {};
 var files = [];
 
 export function deleteEverything() {
   files = [];
+  filesystem = {};
 }
 
 export function writeFileSync( filename, buffer )
