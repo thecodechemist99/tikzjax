@@ -48,7 +48,7 @@ function copy(src)  {
 
 async function loadTikzLibraries(libsList) {
 	for (const lib of libsList) {
-		let response = await fetch(urlRoot + "/libs/" + lib + ".json.gz");
+		let response = await fetch(urlRoot + "/tikz_libs/" + lib + ".json.gz");
 		if (response.ok) {
 			let data = await response.arrayBuffer();
 			let filesystem = JSON.parse(pako.inflate(data, { to: 'string' }));
