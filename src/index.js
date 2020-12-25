@@ -1,8 +1,9 @@
 import { dvi2html } from '../../dvi2html';
 import { Writable } from 'stream';
-import * as library from './library';
 import pako from 'pako';
 import fetchStream from 'fetch-readablestream';
+import { BlobWorker, spawn, Thread} from 'threads';
+import TexText from './run-tex';
 
 // document.currentScript polyfill
 if (document.currentScript === undefined) {
@@ -10,7 +11,7 @@ if (document.currentScript === undefined) {
 	document.currentScript = scripts[scripts.length - 1];
 }
 
-// Determine where this script was loaded from. We will use that to find the wasm and dump files.
+// Determine where this script was loaded from. We will use that to find the files to load.
 var url = new URL(document.currentScript.src);
 var urlRoot = url.href.replace(/\/tikzjax(\.min)?\.js$/, '');
 
@@ -37,81 +38,7 @@ async function load() {
 		reader.releaseLock();
 	}
 
-	coredump = new Uint8Array(inf.result, 0, pages*65536);
-}
-
-function copy(src)  {
-	var dst = new Uint8Array(src.length);
-	dst.set(src);
-	return dst;
-}
-
-async function loadPackages(packagesList) {
-	for (const pack of packagesList) {
-		let response = await fetch(urlRoot + "/packages/" + pack + ".json.gz");
-		if (response.ok) {
-			let data = await response.arrayBuffer();
-			let filesystem = JSON.parse(pako.inflate(data, { to: 'string' }));
-			for (const [file, buffer] of Object.entries(filesystem)) {
-				if (!file) continue;
-				library.writeFileSync(file, buffer);
-			}
-		} else {
-			throw `Unable to load package ${pack}.  File not available.`;
-		}
-	}
-}
-
-async function loadTikzLibraries(libsList) {
-	for (const lib of libsList) {
-		let response = await fetch(urlRoot + "/tikz_libs/" + lib + ".json.gz");
-		if (response.ok) {
-			let data = await response.arrayBuffer();
-			let filesystem = JSON.parse(pako.inflate(data, { to: 'string' }));
-			for (const [file, buffer] of Object.entries(filesystem)) {
-				if (!file) continue;
-				library.writeFileSync(file, buffer);
-			}
-		} else {
-			throw `Unable to load tikz library ${lib}.  File not available.`;
-		}
-	}
-}
-
-async function tex(input, packages, tikzLibraries, tikzOptions) {
-	input = (packages ? ('\\usepackage{' + packages + '}') : '') +
-		(tikzLibraries ? ('\\usetikzlibrary{' + tikzLibraries + '}') : '') +
-		'\\begin{document}\\begin{tikzpicture}' +
-		(tikzOptions ? ('[' + tikzOptions + ']') : '') + '\n' + input + '\n\\end{tikzpicture}\\end{document}\n';
-
-	library.deleteEverything();
-
-	// Load requested tikz libraries.
-	if (packages) {
-		await loadPackages(packages.split(","));
-	}
-
-	// Load requested tikz libraries.
-	if (tikzLibraries) {
-		await loadTikzLibraries(tikzLibraries.split(","));
-	}
-
-	library.writeFileSync("sample.tex", Buffer.from(input));
-
-	let memory = new WebAssembly.Memory({ initial: pages, maximum: pages });
-
-	let buffer = new Uint8Array(memory.buffer, 0, pages*65536);
-	buffer.set(copy(coredump));
-
-	library.setMemory(memory.buffer);
-	library.setInput(" sample.tex \n\\end\n");
-
-	await WebAssembly.instantiate(code, {
-		library: library,
-		env: { memory: memory }
-	});
-
-	return library.readFileSync("sample.dvi");
+	coredump = new Uint8Array(inf.result, 0, pages * 65536);
 }
 
 window.addEventListener('load', async function() {
@@ -144,14 +71,20 @@ window.addEventListener('load', async function() {
 		var div = elt.div;
 
 		let dvi;
+		let worker = BlobWorker.fromText(TexText);
+		worker.onmessage = e => { if (typeof(e.data) === "string") console.log(e.data); }
+		const tex = await spawn(worker);
 		try {
-			dvi = await tex(text, elt.dataset.packages, elt.dataset.tikzLibraries, elt.dataset.tikzOptions);
+			dvi = await tex(text, code, coredump, urlRoot,
+				elt.dataset.packages, elt.dataset.tikzLibraries, elt.dataset.tikzOptions);
 		} catch (err) {
 			div.style.width = 'unset';
 			div.style.height = 'unset';
 			console.log(err);
 			div.innerHTML = "Error generating image."
 			return;
+		} finally {
+			await Thread.terminate(tex);
 		}
 
 		let html = "";
@@ -185,10 +118,13 @@ window.addEventListener('load', async function() {
 	var tikzScripts = Array.prototype.slice.call(scripts).filter(
 		(e) => (e.getAttribute('type') === 'text/tikz'));
 
+	// First convert the script tags to divs that contain a spinning loader.
 	tikzScripts.forEach(async element => setupLoader(element));
 
+	// Wait for the assembly and core dump to finish loading.
 	await loadPromise;
 
+	// Now run tex on the text in each of the scripts.
 	tikzScripts.reduce(async (promise, element) => {
 		await promise;
 		return process(element);

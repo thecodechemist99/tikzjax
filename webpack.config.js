@@ -1,6 +1,7 @@
 const path = require("path");
 const webpack = require('webpack');
 const fs = require('fs');
+const CopyPlugin = require('copy-webpack-plugin');
 
 module.exports = {
 	mode: 'development',
@@ -23,7 +24,7 @@ module.exports = {
 		Buffer: true
 	},
 	target: 'web',
-	devtool: '#source-map',
+	devtool: 'source-map',
 	module: {
 		noParse: /browserfs\.js/,
 		rules: [
@@ -37,22 +38,25 @@ module.exports = {
 						plugins: [['@babel/plugin-transform-runtime']]
 					}
 				}
+			},
+			{
+				test: /run-tex\.js$/,
+				loader: 'threads-webpack-plugin',
+				options: {}
 			}
-			//{
-			//  test: /index\.js$/,
-			//  loader: 'string-replace-loader',
-			//  options: {
-			//    multiple: [
-			//      { search: "'/tex.wasm'", replace: "'/e412953e46efd2b8af997ad3c5b1c32c0b206f2d.wasm'" },
-			//      { search: "'/core.dump.gz'", replace: "'/a9fb51a852b7e870033151a083ca8671a0adcb6a.gz'" }
-			//    ]
-			//  }
-			//}
 		]
 	},
 	performance: {
 		hints: false
 	},
 	plugins: [
+		new CopyPlugin({
+			patterns: [
+				{ from: "./fonts.css", to: path.resolve(__dirname, 'dist') },
+				{ from: "./loader.css", to: path.resolve(__dirname, 'dist') },
+				{ from: "./core.dump.gz", to: path.resolve(__dirname, 'dist'), noErrorOnMissing: true },
+				{ from: "./tex.wasm", to: path.resolve(__dirname, 'dist'), noErrorOnMissing: true }
+			]
+		})
 	]
 };

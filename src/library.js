@@ -1,7 +1,6 @@
 import { tfmData } from '../../dvi2html';
 import btoa from 'btoa';
 
-/****************************************************************/
 // fake files
 
 var filesystem = {};
@@ -80,21 +79,18 @@ function readSync(file, buffer, pointer, length, seek)
 	return length;
 }
 
-/****************************************************************/
-
 var consoleBuffer = "";
 function writeToConsole(x) {
-	consoleBuffer = consoleBuffer + x;
+	consoleBuffer += x;
 	if (consoleBuffer.indexOf("\n") >= 0) {
 		let lines = consoleBuffer.split("\n");
 		consoleBuffer = lines.pop();
 		for (let line of lines) {
-			console.log(line);
+			postMessage(line);
 		}
 	}
 }
 
-/****************************************************************/
 // setup
 
 var memory = undefined;
@@ -110,7 +106,6 @@ export function setInput(input, cb) {
 	if (cb) callback = cb;
 }
 
-/****************************************************************/
 // provide time back to tex
 
 export function getCurrentMinutes() {
@@ -130,7 +125,6 @@ export function getCurrentYear() {
 	return (new Date()).getFullYear();
 }
 
-/****************************************************************/
 // print
 
 export function printString(descriptor, x) {
