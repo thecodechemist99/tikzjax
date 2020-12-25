@@ -6,7 +6,7 @@ See a live demo at http://tikzjax.com/
 
 ## Example
 
-In the `<head>` of your HTML, include 
+In the `<head>` of your HTML, include
 ```html
 <link rel="stylesheet" type="text/css" href="http://tikzjax.com/v1/fonts.css">
 <script src="http://tikzjax.com/v1/tikzjax.js"></script>
@@ -26,7 +26,7 @@ replaced with the corresponding SVG.
 ## How does this work?
 
 Using https://github.com/kisonecat/web2js the Pascal source of `tex`
-is compiled to WebAssembly; the latex format is loaded (without all the hyphenation data), and 
+is compiled to WebAssembly; the latex format is loaded (without all the hyphenation data), and
 ```
 \documentclass[margin=0pt]{standalone}
 \def\pgfsysdriver{pgfsys-ximera.def}

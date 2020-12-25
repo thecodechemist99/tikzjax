@@ -1,4 +1,5 @@
 import { tfmData } from '../../dvi2html';
+import btoa from 'btoa';
 
 /****************************************************************/
 // fake files
@@ -33,9 +34,7 @@ function openSync(filename, mode)
 
 	if (filesystem[filename]) {
 		buffer = Uint8Array.from(Buffer.from(filesystem[filename], 'base64'));
-	}
-
-	if (filename.match(/\.tfm$/)) {
+	} else if (filename.match(/\.tfm$/)) {
 		buffer = Uint8Array.from(tfmData(filename.replace(/\.tfm$/, '')));
 	}
 

@@ -1,12 +1,13 @@
 {
-	"name": "latex-demo",
+	"name": "tikzjax",
 	"version": "1.0.0",
 	"description": "",
-	"main": "app.js",
+	"main": "tikzjax.js",
 	"scripts": {
 		"minify": "uglifyjs ./dist/tikzjax.js -c -m -o ./dist/tikzjax.min.js",
+		"gen-latex-packages": "node genPackages.js",
 		"gen-tikz-libs": "node genTikzLibs.js",
-		"prebuild": "gulp copy-core && gulp copy-wasm && npm run gen-tikz-libs",
+		"prebuild": "gulp copy-core && gulp copy-wasm && npm run gen-tikz-libs && npm run gen-latex-packages",
 		"build": "gulp webpack && npm run-script minify",
 		"postbuild": "gulp copy-css && gulp fonts"
 	},
@@ -15,6 +16,7 @@
 	"dependencies": {
 		"@babel/runtime": "^7.12.5",
 		"browserfs": "^2.0.0",
+		"btoa": "^1.2.1",
 		"express": "^4.16.4",
 		"fetch-readablestream": "^0.2.0",
 		"pako": "^1.0.8",

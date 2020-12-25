@@ -46,6 +46,22 @@ function copy(src)  {
 	return dst;
 }
 
+async function loadPackages(packagesList) {
+	for (const pack of packagesList) {
+		let response = await fetch(urlRoot + "/packages/" + pack + ".json.gz");
+		if (response.ok) {
+			let data = await response.arrayBuffer();
+			let filesystem = JSON.parse(pako.inflate(data, { to: 'string' }));
+			for (const [file, buffer] of Object.entries(filesystem)) {
+				if (!file) continue;
+				library.writeFileSync(file, buffer);
+			}
+		} else {
+			throw `Unable to load package ${pack}.  File not available.`;
+		}
+	}
+}
+
 async function loadTikzLibraries(libsList) {
 	for (const lib of libsList) {
 		let response = await fetch(urlRoot + "/tikz_libs/" + lib + ".json.gz");
@@ -62,15 +78,23 @@ async function loadTikzLibraries(libsList) {
 	}
 }
 
-async function tex(input, tikzLibraries, tikzOptions) {
-	input = (tikzLibraries ? ('\\usetikzlibrary{' + tikzLibraries + '}') : '') +
+async function tex(input, packages, tikzLibraries, tikzOptions) {
+	input = (packages ? ('\\usepackage{' + packages + '}') : '') +
+		(tikzLibraries ? ('\\usetikzlibrary{' + tikzLibraries + '}') : '') +
 		'\\begin{document}\\begin{tikzpicture}' +
 		(tikzOptions ? ('[' + tikzOptions + ']') : '') + '\n' + input + '\n\\end{tikzpicture}\\end{document}\n';
 
 	library.deleteEverything();
 
 	// Load requested tikz libraries.
-	await loadTikzLibraries(tikzLibraries.split(","));
+	if (packages) {
+		await loadPackages(packages.split(","));
+	}
+
+	// Load requested tikz libraries.
+	if (tikzLibraries) {
+		await loadTikzLibraries(tikzLibraries.split(","));
+	}
 
 	library.writeFileSync("sample.tex", Buffer.from(input));
 
@@ -121,7 +145,7 @@ window.addEventListener('load', async function() {
 
 		let dvi;
 		try {
-			dvi = await tex(text, elt.dataset.tikzLibraries, elt.dataset.tikzOptions);
+			dvi = await tex(text, elt.dataset.packages, elt.dataset.tikzLibraries, elt.dataset.tikzOptions);
 		} catch (err) {
 			div.style.width = 'unset';
 			div.style.height = 'unset';
