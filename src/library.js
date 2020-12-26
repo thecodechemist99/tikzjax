@@ -1,5 +1,4 @@
 import { tfmData } from '../../dvi2html';
-import btoa from 'btoa';
 
 // fake files
 

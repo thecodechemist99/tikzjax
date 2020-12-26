@@ -16,10 +16,8 @@
 	],
 	"license": "GPL-3.0+",
 	"dependencies": {
-		"btoa": "^1.2.1",
 		"fetch-readablestream": "^0.2.0",
 		"pako": "^1.0.8",
-		"raw-loader": "^4.0.2",
 		"threads": "^1.6.3"
 	},
 	"devDependencies": {
