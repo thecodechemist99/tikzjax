@@ -6,21 +6,16 @@ const CopyPlugin = require('copy-webpack-plugin');
 module.exports = {
 	mode: 'development',
 	entry: {
-		tikzjax: './src/index.js'
+		tikzjax: './src/index.js',
+		'run-tex': './src/run-tex.js',
 	},
 	output: {
 		path: path.resolve(__dirname, 'dist'),
-		publicPath: './',
 		filename: '[name].js'
 	},
 	devtool: 'source-map',
 	module: {
 		rules: [
-			{
-				test: /run-tex\.js$/,
-				loader: 'threads-webpack-plugin',
-				options: {}
-			}
 		]
 	},
 	performance: {

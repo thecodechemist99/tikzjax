@@ -6,17 +6,20 @@
 	"scripts": {
 		"gen-latex-packages": "node genPackages.js",
 		"gen-tikz-libs": "node genTikzLibs.js",
-		"prebuild": "npm run gen-tikz-libs && npm run gen-latex-packages",
 		"devbuild": "webpack --mode development",
 		"build": "webpack --mode production",
-		"postbuild": "gulp download-fonts && gulp install-fonts"
+		"postbuild": "gulp download-fonts && gulp install-fonts && npm run gen-tikz-libs && npm run gen-latex-packages"
 	},
 	"author": "Jim Fowler",
-	"license": "GPL-3.0",
+	"contributors": [
+		"Glenn Rice"
+	],
+	"license": "GPL-3.0+",
 	"dependencies": {
 		"btoa": "^1.2.1",
 		"fetch-readablestream": "^0.2.0",
 		"pako": "^1.0.8",
+		"raw-loader": "^4.0.2",
 		"threads": "^1.6.3"
 	},
 	"devDependencies": {
@@ -25,7 +28,6 @@
 		"gulp-decompress": "^2.0.2",
 		"gulp-download2": "^1.0.2",
 		"gulp-filter": "^5.1.0",
-		"threads-webpack-plugin": "^1.0.7",
 		"webpack": "^4.29.5",
 		"webpack-cli": "^3.2.3"
 	}

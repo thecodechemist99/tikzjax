@@ -2,8 +2,7 @@ import { dvi2html } from '../../dvi2html';
 import { Writable } from 'stream';
 import pako from 'pako';
 import fetchStream from 'fetch-readablestream';
-import { BlobWorker, spawn, Thread} from 'threads';
-import TexText from './run-tex';
+import { Worker, spawn, Thread} from 'threads';
 
 // document.currentScript polyfill
 if (document.currentScript === undefined) {
@@ -71,7 +70,7 @@ window.addEventListener('load', async function() {
 		var div = elt.div;
 
 		let dvi;
-		let worker = BlobWorker.fromText(TexText);
+		let worker = new Worker(urlRoot + '/run-tex.js');
 		worker.onmessage = e => { if (typeof(e.data) === "string") console.log(e.data); }
 		const tex = await spawn(worker);
 		try {
@@ -125,8 +124,5 @@ window.addEventListener('load', async function() {
 	await loadPromise;
 
 	// Now run tex on the text in each of the scripts.
-	tikzScripts.reduce(async (promise, element) => {
-		await promise;
-		return process(element);
-	}, Promise.resolve());
+	tikzScripts.forEach(async element => process(element));
 });
