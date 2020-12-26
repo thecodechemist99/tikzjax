@@ -1,8 +1,6 @@
 import { dvi2html } from '../../dvi2html';
 import { Writable } from 'stream';
-import pako from 'pako';
-import fetchStream from 'fetch-readablestream';
-import { Worker, spawn, Thread} from 'threads';
+import { Worker, spawn, Thread } from 'threads';
 
 // document.currentScript polyfill
 if (document.currentScript === undefined) {
@@ -14,34 +12,11 @@ if (document.currentScript === undefined) {
 var url = new URL(document.currentScript.src);
 var urlRoot = url.href.replace(/\/tikzjax(\.min)?\.js$/, '');
 
-let pages = 1000;
-var coredump;
-var code;
-
-async function load() {
-	let tex = await fetch(urlRoot + '/tex.wasm');
-	code = await tex.arrayBuffer();
-
-	let response = await fetchStream(urlRoot + '/core.dump.gz');
-	const reader = response.body.getReader();
-	const inf = new pako.Inflate();
-
-	try {
-		while (true) {
-			const {done, value} = await reader.read();
-			inf.push(value, done);
-			if (done) break;
-		}
-	}
-	finally {
-		reader.releaseLock();
-	}
-
-	coredump = new Uint8Array(inf.result, 0, pages * 65536);
-}
-
 window.addEventListener('load', async function() {
-	var loadPromise = load();
+	let worker = new Worker(urlRoot + '/run-tex.js');
+	worker.onmessage = e => { if (typeof(e.data) === "string") console.log(e.data); }
+	const tex = await spawn(worker);
+	let loadPromise = tex.load(urlRoot);
 
 	async function setupLoader(elt) {
 		var div = document.createElement('div');
@@ -70,20 +45,14 @@ window.addEventListener('load', async function() {
 		var div = elt.div;
 
 		let dvi;
-		let worker = new Worker(urlRoot + '/run-tex.js');
-		worker.onmessage = e => { if (typeof(e.data) === "string") console.log(e.data); }
-		const tex = await spawn(worker);
 		try {
-			dvi = await tex(text, code, coredump, urlRoot,
-				elt.dataset.packages, elt.dataset.tikzLibraries, elt.dataset.tikzOptions);
+			dvi = await tex.texify(text, elt.dataset.packages, elt.dataset.tikzLibraries, elt.dataset.tikzOptions);
 		} catch (err) {
 			div.style.width = 'unset';
 			div.style.height = 'unset';
 			console.log(err);
 			div.innerHTML = "Error generating image."
 			return;
-		} finally {
-			await Thread.terminate(tex);
 		}
 
 		let html = "";
@@ -124,5 +93,10 @@ window.addEventListener('load', async function() {
 	await loadPromise;
 
 	// Now run tex on the text in each of the scripts.
-	tikzScripts.forEach(async element => process(element));
+	await tikzScripts.reduce(async (promise, element) => {
+		await promise;
+		return process(element);
+	}, Promise.resolve());
+
+	await Thread.terminate(tex);
 });

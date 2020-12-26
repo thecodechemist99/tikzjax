@@ -1,10 +1,14 @@
 import { expose, Transfer } from "threads/worker";
 import pako from 'pako';
+import fetchStream from 'fetch-readablestream';
 import * as library from './library';
 
 let pages = 1000;
+var coredump;
+var code;
+var urlRoot;
 
-async function loadPackages(packagesList, urlRoot) {
+async function loadPackages(packagesList) {
 	for (const pack of packagesList) {
 		let response = await fetch(urlRoot + "/packages/" + pack + ".json.gz");
 		if (response.ok) {
@@ -20,7 +24,7 @@ async function loadPackages(packagesList, urlRoot) {
 	}
 }
 
-async function loadTikzLibraries(libsList, urlRoot) {
+async function loadTikzLibraries(libsList) {
 	for (const lib of libsList) {
 		let response = await fetch(urlRoot + "/tikz_libs/" + lib + ".json.gz");
 		if (response.ok) {
@@ -36,34 +40,65 @@ async function loadTikzLibraries(libsList, urlRoot) {
 	}
 }
 
-expose(async function(input, code, coredump, urlRoot, packages, tikzLibraries, tikzOptions) {
-	input = (packages ? ('\\usepackage{' + packages + '}') : '') +
-		(tikzLibraries ? ('\\usetikzlibrary{' + tikzLibraries + '}') : '') +
-		'\\begin{document}\\begin{tikzpicture}' +
-		(tikzOptions ? ('[' + tikzOptions + ']') : '') + '\n' + input + '\n\\end{tikzpicture}\\end{document}\n';
+function copy(src) {
+	var dst = new Uint8Array(src.length);
+	dst.set(src);
+	return dst;
+}
 
-	library.deleteEverything();
+expose({
+	load: async function(_urlRoot) {
+		urlRoot = _urlRoot;
 
-	// Load requested packages.
-	if (packages) await loadPackages(packages.split(","), urlRoot);
+		let tex = await fetch(urlRoot + '/tex.wasm');
+		code = await tex.arrayBuffer();
 
-	// Load requested tikz libraries.
-	if (tikzLibraries) await loadTikzLibraries(tikzLibraries.split(","), urlRoot);
+		let response = await fetchStream(urlRoot + '/core.dump.gz');
+		const reader = response.body.getReader();
+		const inf = new pako.Inflate();
 
-	library.writeFileSync("input.tex", Buffer.from(input));
+		try {
+			while (true) {
+				const {done, value} = await reader.read();
+				inf.push(value, done);
+				if (done) break;
+			}
+		}
+		finally {
+			reader.releaseLock();
+		}
 
-	let memory = new WebAssembly.Memory({ initial: pages, maximum: pages });
+		coredump = new Uint8Array(inf.result, 0, pages * 65536);
+	},
+	texify: async function(input, packages, tikzLibraries, tikzOptions) {
+		input = (packages ? ('\\usepackage{' + packages + '}') : '') +
+			(tikzLibraries ? ('\\usetikzlibrary{' + tikzLibraries + '}') : '') +
+			'\\begin{document}\\begin{tikzpicture}' +
+			(tikzOptions ? ('[' + tikzOptions + ']') : '') + '\n' + input + '\n\\end{tikzpicture}\\end{document}\n';
 
-	let buffer = new Uint8Array(memory.buffer, 0, pages*65536);
-	buffer.set(coredump);
+		library.deleteEverything();
 
-	library.setMemory(memory.buffer);
-	library.setInput(" input.tex \n\\end\n");
+		// Load requested packages.
+		if (packages) await loadPackages(packages.split(","), urlRoot);
 
-	await WebAssembly.instantiate(code, {
-		library: library,
-		env: { memory: memory }
-	});
+		// Load requested tikz libraries.
+		if (tikzLibraries) await loadTikzLibraries(tikzLibraries.split(","), urlRoot);
 
-	return Transfer(library.readFileSync("input.dvi").buffer);
+		library.writeFileSync("input.tex", Buffer.from(input));
+
+		let memory = new WebAssembly.Memory({ initial: pages, maximum: pages });
+
+		let buffer = new Uint8Array(memory.buffer, 0, pages*65536);
+		buffer.set(copy(coredump));
+
+		library.setMemory(memory.buffer);
+		library.setInput(" input.tex \n\\end\n");
+
+		await WebAssembly.instantiate(code, {
+			library: library,
+			env: { memory: memory }
+		});
+
+		return Transfer(library.readFileSync("input.dvi").buffer);
+	}
 });
