@@ -7,7 +7,7 @@ gulp.task('download-fonts',
 	() => download('http://mirrors.ctan.org/fonts/cm/ps-type1/bakoma.zip').pipe(gulp.dest('./'))
 );
 
-gulp.task('fonts',
+gulp.task('install-fonts',
 	function() {
 		return gulp.src('bakoma.zip')
 			.pipe(decompress())
