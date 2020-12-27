@@ -82,6 +82,10 @@ window.addEventListener('load', async function() {
 		svg[0].setAttribute("width", machine.paperwidth.toString() + "pt");
 		svg[0].setAttribute("height", machine.paperheight.toString() + "pt");
 		svg[0].setAttribute("viewBox", `-72 -72 ${machine.paperwidth} ${machine.paperheight}`);
+
+		// Emit a bubbling event that the svg image generation is complete.
+		const loadFinishedEvent = new Event('tikzjax-load-finished', { bubbles: true} );
+		div.dispatchEvent(loadFinishedEvent);
 	};
 
 	var scripts = document.getElementsByTagName('script');
