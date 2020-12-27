@@ -30,7 +30,7 @@ module.exports = (env, argv) => {
 				patterns: [
 					{ from: "./css/fonts.css", to: path.resolve(__dirname, 'dist') },
 					{ from: "./core.dump.gz", to: path.resolve(__dirname, 'dist'), noErrorOnMissing: true },
-					{ from: "./tex.wasm", to: path.resolve(__dirname, 'dist'), noErrorOnMissing: true }
+					{ from: "./tex.wasm.gz", to: path.resolve(__dirname, 'dist'), noErrorOnMissing: true }
 				]
 			})
 		]

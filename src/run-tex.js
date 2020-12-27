@@ -46,28 +46,32 @@ function copy(src) {
 	return dst;
 }
 
+async function loadDecompress(url) {
+	let response = await fetchStream(url);
+	const reader = response.body.getReader();
+	const inf = new pako.Inflate();
+
+	try {
+		while (true) {
+			const {done, value} = await reader.read();
+			inf.push(value, done);
+			if (done) break;
+		}
+	}
+	finally {
+		reader.releaseLock();
+	}
+	return inf;
+}
+
 expose({
 	load: async function(_urlRoot) {
 		urlRoot = _urlRoot;
 
-		let tex = await fetch(urlRoot + '/tex.wasm');
-		code = await tex.arrayBuffer();
+		let texWASM = await loadDecompress(urlRoot + '/tex.wasm.gz');
+		code = texWASM.result;
 
-		let response = await fetchStream(urlRoot + '/core.dump.gz');
-		const reader = response.body.getReader();
-		const inf = new pako.Inflate();
-
-		try {
-			while (true) {
-				const {done, value} = await reader.read();
-				inf.push(value, done);
-				if (done) break;
-			}
-		}
-		finally {
-			reader.releaseLock();
-		}
-
+		let inf = await loadDecompress(urlRoot + '/core.dump.gz');
 		coredump = new Uint8Array(inf.result, 0, pages * 65536);
 	},
 	texify: async function(input, packages, tikzLibraries, tikzOptions) {
@@ -88,7 +92,7 @@ expose({
 
 		let memory = new WebAssembly.Memory({ initial: pages, maximum: pages });
 
-		let buffer = new Uint8Array(memory.buffer, 0, pages*65536);
+		let buffer = new Uint8Array(memory.buffer, 0, pages * 65536);
 		buffer.set(copy(coredump));
 
 		library.setMemory(memory.buffer);

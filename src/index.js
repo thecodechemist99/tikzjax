@@ -1,6 +1,7 @@
 import { dvi2html } from '../../dvi2html';
 import { Writable } from 'stream';
 import { Worker, spawn, Thread } from 'threads';
+import md5 from 'md5';
 import '../css/loader.css';
 
 // document.currentScript polyfill
@@ -21,24 +22,40 @@ window.addEventListener('load', async function() {
 
 	async function setupLoader(elt) {
 		var div = document.createElement('div');
+		elt.replaceWith(div);
+		elt.div = div;
+
 		// Transfer any classes set for the script element to the new div.
 		div.classList = elt.classList;
 		div.classList.add("tikzjax-container");
 
-		div.style.width = elt.dataset.width || 100 + "px";
-		div.style.height = elt.dataset.height || 100 + "px";
-		div.style.position = 'relative';
+		let savedSVG = sessionStorage.getItem("svg:" + md5(elt.childNodes[0].nodeValue));
 
-		// Add another div with a loading background and another div to show a spinning loader class.
-		var loaderBackgroundDiv = document.createElement('div');
-		loaderBackgroundDiv.classList.add('tj-loader-background');
-		div.appendChild(loaderBackgroundDiv);
-		var loaderDiv = document.createElement('div');
-		loaderDiv.classList.add('tj-loader-spinner');
-		div.appendChild(loaderDiv);
+		if (savedSVG) {
+			div.innerHTML = atob(savedSVG);
 
-		elt.replaceWith(div);
-		elt.div = div;
+			let svg = div.getElementsByTagName('svg');
+			div.style.width = elt.dataset.width || svg[0].getAttribute("width");
+			div.style.height = elt.dataset.height || svg[0].getAttribute("height");
+
+			// Emit a bubbling event that the svg image generation is complete.
+			const loadFinishedEvent = new Event('tikzjax-load-finished', { bubbles: true});
+			div.dispatchEvent(loadFinishedEvent);
+
+			div.loaded = true;
+		} else {
+			div.style.width = elt.dataset.width || 100 + "px";
+			div.style.height = elt.dataset.height || 100 + "px";
+			div.style.position = 'relative';
+
+			// Add another div with a loading background and another div to show a spinning loader class.
+			var loaderBackgroundDiv = document.createElement('div');
+			loaderBackgroundDiv.classList.add('tj-loader-background');
+			div.appendChild(loaderBackgroundDiv);
+			var loaderDiv = document.createElement('div');
+			loaderDiv.classList.add('tj-loader-spinner');
+			div.appendChild(loaderDiv);
+		}
 	}
 
 	async function process(elt) {
@@ -76,6 +93,7 @@ window.addEventListener('load', async function() {
 		div.style.position = null;
 
 		div.innerHTML = html;
+
 		let svg = div.getElementsByTagName('svg');
 		svg[0].style.width = '100%';
 		svg[0].style.height = '100%';
@@ -83,8 +101,14 @@ window.addEventListener('load', async function() {
 		svg[0].setAttribute("height", machine.paperheight.toString() + "pt");
 		svg[0].setAttribute("viewBox", `-72 -72 ${machine.paperwidth} ${machine.paperheight}`);
 
+		try {
+			sessionStorage.setItem("svg:" + md5(text), btoa(div.innerHTML));
+		} catch (err) {
+			console.log(err);
+		}
+
 		// Emit a bubbling event that the svg image generation is complete.
-		const loadFinishedEvent = new Event('tikzjax-load-finished', { bubbles: true} );
+		const loadFinishedEvent = new Event('tikzjax-load-finished', { bubbles: true});
 		div.dispatchEvent(loadFinishedEvent);
 	};
 
@@ -99,10 +123,10 @@ window.addEventListener('load', async function() {
 	await loadPromise;
 
 	// Now run tex on the text in each of the scripts.
-	await tikzScripts.reduce(async (promise, element) => {
-		await promise;
-		return process(element);
-	}, Promise.resolve());
+	for (let element of tikzScripts) {
+		if (!element.div.loaded)
+			await process(element);
+	}
 
 	await Thread.terminate(tex);
 });
