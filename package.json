@@ -6,9 +6,10 @@
 	"scripts": {
 		"gen-latex-packages": "node genPackages.js",
 		"gen-tikz-libs": "node genTikzLibs.js",
+		"install-fonts": "gulp download-fonts && gulp install-fonts",
 		"devbuild": "webpack --mode development",
-		"build": "webpack --mode production",
-		"postbuild": "gulp download-fonts && gulp install-fonts && npm run gen-tikz-libs && npm run gen-latex-packages"
+		"build": "webpack",
+		"postbuild": "npm run install-fonts && npm run gen-tikz-libs && npm run gen-latex-packages"
 	},
 	"author": "Jim Fowler",
 	"contributors": [
@@ -22,10 +23,12 @@
 	},
 	"devDependencies": {
 		"copy-webpack-plugin": "^6.2.1",
+		"css-loader": "^5.0.1",
 		"gulp": "^4.0.0",
 		"gulp-decompress": "^2.0.2",
 		"gulp-download2": "^1.0.2",
 		"gulp-filter": "^5.1.0",
+		"style-loader": "^2.0.0",
 		"webpack": "^4.29.5",
 		"webpack-cli": "^3.2.3"
 	}

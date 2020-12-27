@@ -1,6 +1,7 @@
 import { dvi2html } from '../../dvi2html';
 import { Writable } from 'stream';
 import { Worker, spawn, Thread } from 'threads';
+import '../css/loader.css';
 
 // document.currentScript polyfill
 if (document.currentScript === undefined) {
