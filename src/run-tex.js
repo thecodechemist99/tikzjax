@@ -103,6 +103,8 @@ expose({
 			env: { memory: memory }
 		});
 
+		library.flushConsole();
+
 		return Transfer(library.readFileSync("input.dvi").buffer);
 	}
 });

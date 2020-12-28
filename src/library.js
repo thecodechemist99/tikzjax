@@ -90,6 +90,10 @@ function writeToConsole(x) {
 	}
 }
 
+export function flushConsole() {
+	writeToConsole("\n");
+}
+
 // setup
 
 var memory = undefined;
