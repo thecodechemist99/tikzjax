@@ -64,7 +64,7 @@ window.addEventListener('load', async function() {
 
 		let dvi;
 		try {
-			dvi = await tex.texify(text, elt.dataset.packages, elt.dataset.tikzLibraries, elt.dataset.tikzOptions);
+			dvi = await tex.texify(text, Object.assign({}, elt.dataset));
 		} catch (err) {
 			div.style.width = 'unset';
 			div.style.height = 'unset';

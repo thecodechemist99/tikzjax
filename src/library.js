@@ -85,13 +85,13 @@ function writeToConsole(x) {
 		let lines = consoleBuffer.split("\n");
 		consoleBuffer = lines.pop();
 		for (let line of lines) {
-			postMessage(line);
+			if (line.length) postMessage(line);
 		}
 	}
 }
 
 export function flushConsole() {
-	writeToConsole("\n");
+	if (consoleBuffer.length) writeToConsole("\n");
 }
 
 // setup

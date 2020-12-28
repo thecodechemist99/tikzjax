@@ -70,19 +70,21 @@ expose({
 		let inf = await loadDecompress('core.dump.gz');
 		coredump = new Uint8Array(inf.result, 0, pages * 65536);
 	},
-	texify: async function(input, packages, tikzLibraries, tikzOptions) {
-		input = (packages ? ('\\usepackage{' + packages + '}') : '') +
-			(tikzLibraries ? ('\\usetikzlibrary{' + tikzLibraries + '}') : '') +
+	texify: async function(input, dataset) {
+		input = (dataset.packages ? ('\\usepackage{' + dataset.packages + '}') : '') +
+			(dataset.tikzLibraries ? ('\\usetikzlibrary{' + dataset.tikzLibraries + '}') : '') +
+			(dataset.addToPreamble || '') +
 			'\\begin{document}\\begin{tikzpicture}' +
-			(tikzOptions ? ('[' + tikzOptions + ']') : '') + '\n' + input + '\n\\end{tikzpicture}\\end{document}\n';
+			(dataset.tikzOptions ? ('[' + dataset.tikzOptions + ']') : '') + '\n'
+			+ input + '\n\\end{tikzpicture}\\end{document}\n';
 
 		library.deleteEverything();
 
 		// Load requested packages.
-		if (packages) await loadPackages(packages.split(","), urlRoot);
+		if (dataset.packages) await loadPackages(dataset.packages.split(","), urlRoot);
 
 		// Load requested tikz libraries.
-		if (tikzLibraries) await loadTikzLibraries(tikzLibraries.split(","), urlRoot);
+		if (dataset.tikzLibraries) await loadTikzLibraries(dataset.tikzLibraries.split(","), urlRoot);
 
 		library.writeFileSync("input.tex", Buffer.from(input));
 
