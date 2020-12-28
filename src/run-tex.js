@@ -8,34 +8,48 @@ var coredump;
 var code;
 var urlRoot;
 
+async function loadDecompress(file, string = false) {
+	let response = await fetchStream(urlRoot + '/' + file);
+	if (response.ok) {
+		let inflateOptions = {};
+		if (string) inflateOptions.to = 'string';
+		const reader = response.body.getReader();
+		const inf = new pako.Inflate(inflateOptions);
+
+		try {
+			while (true) {
+				const {done, value} = await reader.read();
+				inf.push(value, done);
+				if (done) break;
+			}
+		} finally {
+			reader.releaseLock();
+		}
+
+		return inf;
+	} else {
+		throw `Unable to load ${file}.  File not available.`;
+	}
+}
+
 async function loadPackages(packagesList) {
 	for (const pack of packagesList) {
-		let response = await fetch(urlRoot + "/packages/" + pack + ".json.gz");
-		if (response.ok) {
-			let data = await response.arrayBuffer();
-			let filesystem = JSON.parse(pako.inflate(data, { to: 'string' }));
-			for (const [file, buffer] of Object.entries(filesystem)) {
-				if (!file) continue;
-				library.writeFileSync(file, buffer);
-			}
-		} else {
-			throw `Unable to load package ${pack}.  File not available.`;
+		let data = await loadDecompress("packages/" + pack + ".json.gz", true);
+		let filesystem = JSON.parse(data.result);
+		for (const [file, buffer] of Object.entries(filesystem)) {
+			if (!file) continue;
+			library.writeFileSync(file, buffer);
 		}
 	}
 }
 
 async function loadTikzLibraries(libsList) {
 	for (const lib of libsList) {
-		let response = await fetch(urlRoot + "/tikz_libs/" + lib + ".json.gz");
-		if (response.ok) {
-			let data = await response.arrayBuffer();
-			let filesystem = JSON.parse(pako.inflate(data, { to: 'string' }));
-			for (const [file, buffer] of Object.entries(filesystem)) {
-				if (!file) continue;
-				library.writeFileSync(file, buffer);
-			}
-		} else {
-			throw `Unable to load tikz library ${lib}.  File not available.`;
+		let data = await loadDecompress("tikz_libs/" + lib + ".json.gz", true);
+		let filesystem = JSON.parse(data.result);
+		for (const [file, buffer] of Object.entries(filesystem)) {
+			if (!file) continue;
+			library.writeFileSync(file, buffer);
 		}
 	}
 }
@@ -46,32 +60,14 @@ function copy(src) {
 	return dst;
 }
 
-async function loadDecompress(url) {
-	let response = await fetchStream(url);
-	const reader = response.body.getReader();
-	const inf = new pako.Inflate();
-
-	try {
-		while (true) {
-			const {done, value} = await reader.read();
-			inf.push(value, done);
-			if (done) break;
-		}
-	}
-	finally {
-		reader.releaseLock();
-	}
-	return inf;
-}
-
 expose({
 	load: async function(_urlRoot) {
 		urlRoot = _urlRoot;
 
-		let texWASM = await loadDecompress(urlRoot + '/tex.wasm.gz');
+		let texWASM = await loadDecompress('tex.wasm.gz');
 		code = texWASM.result;
 
-		let inf = await loadDecompress(urlRoot + '/core.dump.gz');
+		let inf = await loadDecompress('core.dump.gz');
 		coredump = new Uint8Array(inf.result, 0, pages * 65536);
 	},
 	texify: async function(input, packages, tikzLibraries, tikzOptions) {
