@@ -1,0 +1,5 @@
+{
+	"tikzlibrarymath.code.tex": "/usr/share/texlive/texmf-dist/tex/generic/pgf/frontendlayer/tikz/libraries/tikzlibrarymath.code.tex",
+	"tikzlibraryfpu.code.tex": "/usr/share/texlive/texmf-dist/tex/generic/pgf/frontendlayer/tikz/libraries/tikzlibraryfpu.code.tex",
+	"pgflibraryfpu.code.tex": "/usr/share/texlive/texmf-dist/tex/generic/pgf/libraries/pgflibraryfpu.code.tex"
+}

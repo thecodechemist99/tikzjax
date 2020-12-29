@@ -32,20 +32,9 @@ async function loadDecompress(file, string = false) {
 	}
 }
 
-async function loadPackages(packagesList) {
-	for (const pack of packagesList) {
-		let data = await loadDecompress("packages/" + pack + ".json.gz", true);
-		let filesystem = JSON.parse(data.result);
-		for (const [file, buffer] of Object.entries(filesystem)) {
-			if (!file) continue;
-			library.writeFileSync(file, buffer);
-		}
-	}
-}
-
-async function loadTikzLibraries(libsList) {
-	for (const lib of libsList) {
-		let data = await loadDecompress("tikz_libs/" + lib + ".json.gz", true);
+async function loadFileList(fileList, dir) {
+	for (const filename of fileList) {
+		let data = await loadDecompress(dir + "/" + filename + ".json.gz", true);
 		let filesystem = JSON.parse(data.result);
 		for (const [file, buffer] of Object.entries(filesystem)) {
 			if (!file) continue;
@@ -81,10 +70,10 @@ expose({
 		library.deleteEverything();
 
 		// Load requested packages.
-		if (dataset.packages) await loadPackages(dataset.packages.split(","), urlRoot);
+		if (dataset.packages) await loadFileList(dataset.packages.split(","), "packages");
 
 		// Load requested tikz libraries.
-		if (dataset.tikzLibraries) await loadTikzLibraries(dataset.tikzLibraries.split(","), urlRoot);
+		if (dataset.tikzLibraries) await loadFileList(dataset.tikzLibraries.split(","), "tikz_libs");
 
 		library.writeFileSync("input.tex", Buffer.from(input));
 

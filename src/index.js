@@ -29,7 +29,7 @@ window.addEventListener('load', async function() {
 		div.classList = elt.classList;
 		div.classList.add("tikzjax-container");
 
-		let savedSVG = sessionStorage.getItem("svg:" + md5(elt.childNodes[0].nodeValue));
+		let savedSVG = sessionStorage.getItem("svg:" + md5(JSON.stringify(elt.dataset) + elt.childNodes[0].nodeValue));
 
 		if (savedSVG) {
 			div.innerHTML = atob(savedSVG);
@@ -102,7 +102,7 @@ window.addEventListener('load', async function() {
 		svg[0].setAttribute("viewBox", `-72 -72 ${machine.paperwidth} ${machine.paperheight}`);
 
 		try {
-			sessionStorage.setItem("svg:" + md5(text), btoa(div.innerHTML));
+			sessionStorage.setItem("svg:" + md5(JSON.stringify(elt.dataset) + text), btoa(div.innerHTML));
 		} catch (err) {
 			console.log(err);
 		}

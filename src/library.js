@@ -209,31 +209,32 @@ export function reset(length, pointer) {
 	var buffer = new Uint8Array(memory, pointer, length);
 	var filename = String.fromCharCode.apply(null, buffer);
 
-	filename = filename.replace(/ +$/g,'');
-	filename = filename.replace(/^\*/,'');
+	filename = filename.replace(/ +$/g, '');
+	filename = filename.replace(/^\*/, '');
 	filename = filename.replace(/"/g, '');
-		filename = filename.replace(/^TeXfonts:/,'');
+	filename = filename.replace(/^TeXfonts:/, '');
 
-		if (filename == 'TeXformats:TEX.POOL')
+	if (filename == 'TeXformats:TEX.POOL')
 		filename = "tex.pool";
 
-		if (filename == "TTY:") {
-			files.push({ filename: "stdin",
-				stdin: true,
-				position: 0,
-				erstat: 0
-			});
-			return files.length - 1;
-		}
-
-		return openSync(filename,'r');
+	if (filename == "TTY:") {
+		files.push({
+			filename: "stdin",
+			stdin: true,
+			position: 0,
+			erstat: 0
+		});
+		return files.length - 1;
 	}
+
+	return openSync(filename, 'r');
+}
 
 export function rewrite(length, pointer) {
 	var buffer = new Uint8Array(memory, pointer, length);
 	var filename = String.fromCharCode.apply(null, buffer);
 
-	filename = filename.replace(/ +$/g,'');
+	filename = filename.replace(/ +$/g, '');
 
 	if (filename == "TTY:") {
 		files.push({ filename: "stdout",
