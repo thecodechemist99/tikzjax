@@ -1,5 +1,6 @@
 import { dvi2html } from '../../dvi2html';
-import { Writable } from 'stream';
+import { Writable } from 'stream-browserify';
+import { Buffer } from 'buffer/';
 import { Worker, spawn, Thread } from 'threads';
 import md5 from 'md5';
 import '../css/loader.css';

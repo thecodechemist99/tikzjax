@@ -2,7 +2,7 @@
 	"name": "tikzjax",
 	"version": "1.0.0",
 	"description": "",
-	"main": "tikzjax.js",
+	"browser": "tikzjax.js",
 	"scripts": {
 		"gen-latex-packages": "node genPackages.js",
 		"gen-tikz-libs": "node genTikzLibs.js",
@@ -17,9 +17,12 @@
 	],
 	"license": "GPL-3.0+",
 	"dependencies": {
+		"buffer": "^6.0.3",
 		"fetch-readablestream": "^0.2.0",
 		"md5": "^2.3.0",
 		"pako": "^1.0.8",
+		"process": "^0.11.10",
+		"stream-browserify": "^3.0.0",
 		"threads": "^1.6.3"
 	},
 	"devDependencies": {
@@ -30,7 +33,7 @@
 		"gulp-download2": "^1.0.2",
 		"gulp-filter": "^5.1.0",
 		"style-loader": "^2.0.0",
-		"webpack": "^4.29.5",
-		"webpack-cli": "^3.2.3"
+		"webpack": "^5.11.1",
+		"webpack-cli": "^4.3.0"
 	}
 }

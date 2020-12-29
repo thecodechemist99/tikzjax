@@ -1,6 +1,7 @@
 import { expose, Transfer } from "threads/worker";
 import pako from 'pako';
 import fetchStream from 'fetch-readablestream';
+import { Buffer } from 'buffer/';
 import * as library from './library';
 
 let pages = 1000;
@@ -43,12 +44,6 @@ async function loadFileList(fileList, dir) {
 	}
 }
 
-function copy(src) {
-	var dst = new Uint8Array(src.length);
-	dst.set(src);
-	return dst;
-}
-
 expose({
 	load: async function(_urlRoot) {
 		urlRoot = _urlRoot;
@@ -80,7 +75,7 @@ expose({
 		let memory = new WebAssembly.Memory({ initial: pages, maximum: pages });
 
 		let buffer = new Uint8Array(memory.buffer, 0, pages * 65536);
-		buffer.set(copy(coredump));
+		buffer.set(coredump.slice(0));
 
 		library.setMemory(memory.buffer);
 		library.setInput(" input.tex \n\\end\n");
