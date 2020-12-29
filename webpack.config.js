@@ -15,12 +15,6 @@ module.exports = (env, argv) => {
 			path: path.resolve(__dirname, 'dist'),
 			filename: '[name].js'
 		},
-		resolve: {
-			fallback: {
-				buffer: require.resolve("buffer/"),
-				process: require.resolve("process/browser")
-			}
-		},
 		module: {
 			rules: [
 				{
@@ -41,12 +35,7 @@ module.exports = (env, argv) => {
 				]
 			}),
 			new webpack.ProvidePlugin({
-				Buffer: ['buffer', 'Buffer'],
-				process: 'process'
-			}),
-			new TerserPlugin({
-				terserOptions: { format: { comments: false } },
-				extractComments: false
+				process: 'process/browser'
 			})
 		]
 	};
@@ -57,6 +46,12 @@ module.exports = (env, argv) => {
 		config.devtool = "source-map";
 	} else {
 		console.log("Using production mode.");
+		// This prevents the LICENSE file from being generated.  It also minimizes the code even in development mode,
+		// which is why it is here.
+		config.plugins.push(new TerserPlugin({
+			terserOptions: { format: { comments: false } },
+			extractComments: false
+		}));
 	}
 
 	return config;

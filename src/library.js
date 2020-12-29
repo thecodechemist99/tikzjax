@@ -1,5 +1,5 @@
 import { tfmData } from '../../dvi2html';
-import { Buffer } from 'buffer/';
+import { Buffer } from 'buffer';
 
 // fake files
 

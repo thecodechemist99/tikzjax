@@ -1,7 +1,7 @@
 import { expose, Transfer } from "threads/worker";
 import pako from 'pako';
 import fetchStream from 'fetch-readablestream';
-import { Buffer } from 'buffer/';
+import { Buffer } from 'buffer';
 import * as library from './library';
 
 let pages = 1000;
