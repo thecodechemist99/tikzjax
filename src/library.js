@@ -4,16 +4,16 @@ import { Buffer } from 'buffer';
 var filesystem = {};
 var files = [];
 var consoleBuffer = "";
-var memory = undefined;
-var inputBuffer = undefined;
-var callback = undefined;
+var memory = null;
+var inputBuffer = null;
+var callback = null;
 
 export function deleteEverything() {
 	files = [];
 	filesystem = {};
-	memory = undefined;
-	inputBuffer = undefined;
-	callback = undefined;
+	memory = null;
+	inputBuffer = null;
+	callback = null;
 }
 
 export function writeFileSync(filename, buffer)
