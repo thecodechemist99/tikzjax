@@ -1,14 +1,19 @@
 import { tfmData } from '../../dvi2html';
 import { Buffer } from 'buffer';
 
-// fake files
-
 var filesystem = {};
 var files = [];
+var consoleBuffer = "";
+var memory = undefined;
+var inputBuffer = undefined;
+var callback = undefined;
 
 export function deleteEverything() {
 	files = [];
 	filesystem = {};
+	memory = undefined;
+	inputBuffer = undefined;
+	callback = undefined;
 }
 
 export function writeFileSync(filename, buffer)
@@ -79,7 +84,6 @@ function readSync(file, buffer, pointer, length, seek)
 	return length;
 }
 
-var consoleBuffer = "";
 function writeToConsole(x) {
 	consoleBuffer += x;
 	if (consoleBuffer.indexOf("\n") >= 0) {
@@ -96,10 +100,6 @@ export function flushConsole() {
 }
 
 // setup
-
-var memory = undefined;
-var inputBuffer = undefined;
-var callback = undefined;
 
 export function setMemory(m) {
 	memory = m;

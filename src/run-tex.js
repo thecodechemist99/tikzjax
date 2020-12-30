@@ -4,7 +4,7 @@ import fetchStream from 'fetch-readablestream';
 import { Buffer } from 'buffer';
 import * as library from './library';
 
-let pages = 1000;
+let pages = 2000;
 var coredump;
 var code;
 var urlRoot;
