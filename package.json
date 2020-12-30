@@ -4,12 +4,11 @@
 	"description": "",
 	"browser": "tikzjax.js",
 	"scripts": {
-		"gen-latex-packages": "node genPackages.js",
-		"gen-tikz-libs": "node genTikzLibs.js",
+		"gen-tex-files": "node genTexFiles.js",
 		"install-fonts": "gulp download-fonts && gulp install-fonts",
 		"devbuild": "webpack --mode development",
 		"build": "webpack",
-		"postbuild": "npm run install-fonts && npm run gen-tikz-libs && npm run gen-latex-packages"
+		"postbuild": "npm run install-fonts && npm run gen-tex-files"
 	},
 	"author": "Jim Fowler",
 	"contributors": [

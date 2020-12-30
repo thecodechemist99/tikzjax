@@ -4,13 +4,13 @@ import fetchStream from 'fetch-readablestream';
 import { Buffer } from 'buffer';
 import * as library from './library';
 
-let pages = 2000;
+var pages = 2000;
 var coredump;
 var code;
 var urlRoot;
 
 async function loadDecompress(file, string = false) {
-	let response = await fetchStream(urlRoot + '/' + file);
+	let response = await fetchStream(`${urlRoot}/${file}`);
 	if (response.ok) {
 		let inflateOptions = {};
 		if (string) inflateOptions.to = 'string';
@@ -33,13 +33,18 @@ async function loadDecompress(file, string = false) {
 	}
 }
 
-async function loadFileList(fileList, dir) {
-	for (const filename of fileList) {
-		let data = await loadDecompress(dir + "/" + filename + ".json.gz", true);
-		let filesystem = JSON.parse(data.result);
-		for (const [file, buffer] of Object.entries(filesystem)) {
-			if (!file) continue;
-			library.writeFileSync(file, buffer);
+async function loadLibList(libNames, dir) {
+	for (const libName of libNames) {
+		let response = await fetch(`${urlRoot}/${dir}/${libName}.json`);
+		if (response.ok) {
+			let fileList = JSON.parse(await response.text());
+			for (const filename of fileList) {
+				if (library.fileExists(filename)) continue;
+				let data = await loadDecompress(`tex_files/${filename}.gz`, true);
+				library.writeFileSync(filename, data.result);
+			}
+		} else {
+			throw `Unable to load ${dir}/${libName}.json.  File not available`;
 		}
 	}
 }
@@ -55,20 +60,20 @@ expose({
 		coredump = new Uint8Array(inf.result, 0, pages * 65536);
 	},
 	texify: async function(input, dataset) {
+		library.deleteEverything();
+
+		// Load requested packages.
+		if (dataset.packages) await loadLibList(dataset.packages.split(","), "packages");
+
+		// Load requested tikz libraries.
+		if (dataset.tikzLibraries) await loadLibList(dataset.tikzLibraries.split(","), "tikz_libs");
+
 		input = (dataset.packages ? ('\\usepackage{' + dataset.packages + '}') : '') +
 			(dataset.tikzLibraries ? ('\\usetikzlibrary{' + dataset.tikzLibraries + '}') : '') +
 			(dataset.addToPreamble || '') +
 			'\\begin{document}\\begin{tikzpicture}' +
 			(dataset.tikzOptions ? ('[' + dataset.tikzOptions + ']') : '') + '\n'
 			+ input + '\n\\end{tikzpicture}\\end{document}\n';
-
-		library.deleteEverything();
-
-		// Load requested packages.
-		if (dataset.packages) await loadFileList(dataset.packages.split(","), "packages");
-
-		// Load requested tikz libraries.
-		if (dataset.tikzLibraries) await loadFileList(dataset.tikzLibraries.split(","), "tikz_libs");
 
 		library.writeFileSync("input.tex", Buffer.from(input));
 

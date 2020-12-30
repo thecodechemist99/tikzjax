@@ -21,6 +21,10 @@ export function writeFileSync(filename, buffer)
 	filesystem[filename] = btoa(buffer);
 }
 
+export function fileExists(filename) {
+	return filename in filesystem;
+}
+
 export function readFileSync(filename)
 {
 	for (let f of files) {
