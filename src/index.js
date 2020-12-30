@@ -16,10 +16,7 @@ var url = new URL(document.currentScript.src);
 var urlRoot = url.href.replace(/\/tikzjax(\.min)?\.js$/, '');
 
 window.addEventListener('load', async function() {
-	let worker = new Worker(urlRoot + '/run-tex.js');
-	worker.onmessage = e => { if (typeof(e.data) === "string") console.log(e.data); }
-	const tex = await spawn(worker);
-	let loadPromise = tex.load(urlRoot);
+	let texQueue = [];
 
 	async function setupLoader(elt) {
 		var div = document.createElement('div');
@@ -42,9 +39,8 @@ window.addEventListener('load', async function() {
 			// Emit a bubbling event that the svg image generation is complete.
 			const loadFinishedEvent = new Event('tikzjax-load-finished', { bubbles: true});
 			div.dispatchEvent(loadFinishedEvent);
-
-			div.loaded = true;
 		} else {
+			texQueue.push(elt);
 			div.style.width = elt.dataset.width || 100 + "px";
 			div.style.height = elt.dataset.height || 100 + "px";
 			div.style.position = 'relative';
@@ -117,16 +113,22 @@ window.addEventListener('load', async function() {
 	var tikzScripts = Array.prototype.slice.call(scripts).filter(
 		(e) => (e.getAttribute('type') === 'text/tikz'));
 
-	// First convert the script tags to divs that contain a spinning loader.
-	tikzScripts.forEach(async element => setupLoader(element));
-
-	// Wait for the assembly and core dump to finish loading.
-	await loadPromise;
-
-	// Now run tex on the text in each of the scripts.
+	// First check the session storage to see if an image is already cached,
+	// and if so load that.  Otherwise show a spinning loader, and push the
+	// element onto the queue to run tex on.
 	for (let element of tikzScripts) {
-		if (!element.div.loaded)
-			await process(element);
+		await setupLoader(element);
+	}
+
+	// Next load the assembly and core dump.
+	let worker = new Worker(urlRoot + '/run-tex.js');
+	worker.onmessage = e => { if (typeof(e.data) === "string") console.log(e.data); }
+	const tex = await spawn(worker);
+	await tex.load(urlRoot);
+
+	// Now run tex on the text in each of the scripts that wasn't cached.
+	for (let element of texQueue) {
+		await process(element);
 	}
 
 	await Thread.terminate(tex);

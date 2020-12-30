@@ -138,7 +138,7 @@ export function getCurrentYear() {
 export function printString(descriptor, x) {
 	var file = (descriptor < 0) ? {stdout:true} : files[descriptor];
 	var length = new Uint8Array(memory, x, 1)[0];
-	var buffer = new Uint8Array(memory, x+1, length);
+	var buffer = new Uint8Array(memory, x + 1, length);
 	var string = String.fromCharCode.apply(null, buffer);
 
 	if (file.stdout) {
@@ -262,10 +262,8 @@ export function close(descriptor) {
 export function eof(descriptor) {
 	var file = files[descriptor];
 
-	if (file.eof)
-		return 1;
-	else
-		return 0;
+	if (file.eof) return 1;
+	else return 0;
 }
 
 export function erstat(descriptor) {
@@ -276,10 +274,8 @@ export function erstat(descriptor) {
 export function eoln(descriptor) {
 	var file = files[descriptor];
 
-	if (file.eoln)
-		return 1;
-	else
-		return 0;
+	if (file.eoln) return 1;
+	else return 0;
 }
 
 export function get(descriptor, pointer, length) {
@@ -311,10 +307,8 @@ export function get(descriptor, pointer, length) {
 	}
 
 	file.eoln = false;
-	if (buffer[pointer] == 10)
-		file.eoln = true;
-	if (buffer[pointer] == 13)
-		file.eoln = true;
+	if (buffer[pointer] == 10) file.eoln = true;
+	if (buffer[pointer] == 13) file.eoln = true;
 
 	file.position = file.position + length;
 }
