@@ -120,15 +120,22 @@ window.addEventListener('load', async function() {
 		await setupLoader(element);
 	}
 
+	// End here if there is nothing to run tex on.
+	if (!texQueue.length) return;
+
 	// Next load the assembly and core dump.
 	let worker = new Worker(urlRoot + '/run-tex.js');
 	worker.onmessage = e => { if (typeof(e.data) === "string") console.log(e.data); }
 	const tex = await spawn(worker);
-	await tex.load(urlRoot);
-
-	// Now run tex on the text in each of the scripts that wasn't cached.
-	for (let element of texQueue) {
-		await process(element);
+	try {
+		await tex.load(urlRoot);
+	} catch (err) {
+		console.log(err);
+	} finally {
+		// Now run tex on the text in each of the scripts that wasn't cached.
+		for (let element of texQueue) {
+			await process(element);
+		}
 	}
 
 	await Thread.terminate(tex);

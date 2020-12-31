@@ -1,6 +1,5 @@
 import { expose, Transfer } from "threads/worker";
 import pako from 'pako';
-import fetchStream from 'fetch-readablestream';
 import { Buffer } from 'buffer';
 import * as library from './library';
 
@@ -10,22 +9,20 @@ var code;
 var urlRoot;
 
 async function loadDecompress(file, string = false) {
-	let response = await fetchStream(`${urlRoot}/${file}`);
+	let response = await fetch(`${urlRoot}/${file}`);
 	if (response.ok) {
 		let inflateOptions = {};
 		if (string) inflateOptions.to = 'string';
 		const reader = response.body.getReader();
 		const inf = new pako.Inflate(inflateOptions);
 
-		try {
-			while (true) {
-				const {done, value} = await reader.read();
-				inf.push(value, done);
-				if (done) break;
-			}
-		} finally {
-			reader.releaseLock();
+		while (true) {
+			const {done, value} = await reader.read();
+			if (done) break;
+			inf.push(value);
 		}
+		reader.releaseLock();
+		if (inf.err) { throw new Error(inf.err); }
 
 		return inf;
 	} else {
