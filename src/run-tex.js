@@ -24,7 +24,7 @@ async function loadDecompress(file, string = false) {
 		reader.releaseLock();
 		if (inf.err) { throw new Error(inf.err); }
 
-		return inf;
+		return inf.result;
 	} else {
 		throw `Unable to load ${file}.  File not available.`;
 	}
@@ -38,7 +38,7 @@ async function loadLibList(libNames, dir) {
 			for (const filename of fileList) {
 				if (library.fileExists(filename)) continue;
 				let data = await loadDecompress(`tex_files/${filename}.gz`, true);
-				library.writeFileSync(filename, data.result);
+				library.writeFileSync(filename, data);
 			}
 		} else {
 			throw `Unable to load ${dir}/${libName}.json.  File not available`;
@@ -50,11 +50,10 @@ expose({
 	load: async function(_urlRoot) {
 		urlRoot = _urlRoot;
 
-		let texWASM = await loadDecompress('tex.wasm.gz');
-		code = texWASM.result;
-
-		let inf = await loadDecompress('core.dump.gz');
-		coredump = new Uint8Array(inf.result, 0, pages * 65536);
+		postMessage("Initializing LaTeX");
+		code = await loadDecompress('tex.wasm.gz');
+		coredump = new Uint8Array(await loadDecompress('core.dump.gz'), 0, pages * 65536);
+		postMessage("LaTeX Initialized");
 	},
 	texify: async function(input, dataset) {
 		library.deleteEverything();
@@ -90,5 +89,7 @@ expose({
 		library.flushConsole();
 
 		return Transfer(library.readFileSync("input.dvi").buffer);
-	}
+	},
+	// Hack to keep the worker thread alive in Firefox.
+	queryStatus: function() { return Date.now(); }
 });

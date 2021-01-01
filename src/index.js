@@ -36,7 +36,7 @@ window.addEventListener('load', async function() {
 			div.style.width = elt.dataset.width || svg[0].getAttribute("width");
 			div.style.height = elt.dataset.height || svg[0].getAttribute("height");
 
-			// Emit a bubbling event that the svg image generation is complete.
+			// Emit a bubbling event that the svg is ready.
 			const loadFinishedEvent = new Event('tikzjax-load-finished', { bubbles: true});
 			div.dispatchEvent(loadFinishedEvent);
 		} else {
@@ -124,9 +124,14 @@ window.addEventListener('load', async function() {
 	if (!texQueue.length) return;
 
 	// Next load the assembly and core dump.
-	let worker = new Worker(urlRoot + '/run-tex.js');
-	worker.onmessage = e => { if (typeof(e.data) === "string") console.log(e.data); }
-	const tex = await spawn(worker);
+	const tex = await spawn(new Worker(urlRoot + '/run-tex.js'));
+	Thread.events(tex).subscribe(e => {
+		if (e.type == "message" && typeof(e.data) === "string") console.log(e.data);
+	});
+
+	// Hack to keep the worker thread alive in Firefox.
+	let queryInterval = setInterval(async () => await tex.queryStatus(), 1000);
+
 	try {
 		await tex.load(urlRoot);
 	} catch (err) {
@@ -137,6 +142,8 @@ window.addEventListener('load', async function() {
 			await process(element);
 		}
 	}
+
+	clearInterval(queryInterval);
 
 	await Thread.terminate(tex);
 });
