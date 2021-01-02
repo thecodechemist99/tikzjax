@@ -39,7 +39,7 @@ for (const inputDir of inputDirs) {
 		let filesystem = {};
 
 		for (const texFileName of files) {
-			if (!texFileName || texFileName in processedFiles) continue;
+			if (!texFileName || processedFiles.includes(texFileName)) continue;
 			console.log(`\tAttempting to locate ${texFileName}.`);
 
 			let sysFile = locateSystemTexFile(texFileName);

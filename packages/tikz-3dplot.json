@@ -1,0 +1,8 @@
+[
+	"tikz-3dplot.sty",
+	"ifthen.sty",
+	"tikzlibrarycalc.code.tex",
+	"tikzlibrary3d.code.tex",
+	"tikzlibraryarrows.code.tex",
+	"pgflibraryarrows.code.tex"
+]
