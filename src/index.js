@@ -30,7 +30,7 @@ window.addEventListener('load', async function() {
 		let savedSVG = sessionStorage.getItem("svg:" + md5(JSON.stringify(elt.dataset) + elt.childNodes[0].nodeValue));
 
 		if (savedSVG) {
-			div.innerHTML = atob(savedSVG);
+			div.innerHTML = savedSVG;
 
 			let svg = div.getElementsByTagName('svg');
 			div.style.width = elt.dataset.width || svg[0].getAttribute("width");
@@ -89,17 +89,24 @@ window.addEventListener('load', async function() {
 		div.style.height = elt.dataset.height || machine.paperheight.toString() + "pt";
 		div.style.position = null;
 
+		let md5hash = md5(JSON.stringify(elt.dataset) + text);
+
+		let ids = html.match(/\bid="[^"]*"/g);
+		if (ids) {
+			for (let id of ids) {
+				let idString = id.replace(/id="(.*)"/, "$1");
+				html = html.replace(RegExp(`\\b${id}`), `id="${md5hash}-${idString}"`);
+				html = html.replace(`#${idString}`, `#${md5hash}-${idString}`);
+			}
+		}
 		div.innerHTML = html;
 
 		let svg = div.getElementsByTagName('svg');
 		svg[0].style.width = '100%';
 		svg[0].style.height = '100%';
-		svg[0].setAttribute("width", machine.paperwidth.toString() + "pt");
-		svg[0].setAttribute("height", machine.paperheight.toString() + "pt");
-		svg[0].setAttribute("viewBox", `-72 -72 ${machine.paperwidth} ${machine.paperheight}`);
 
 		try {
-			sessionStorage.setItem("svg:" + md5(JSON.stringify(elt.dataset) + text), btoa(div.innerHTML));
+			sessionStorage.setItem("svg:" + md5hash, div.innerHTML);
 		} catch (err) {
 			console.log(err);
 		}
