@@ -3,7 +3,7 @@ import pako from 'pako';
 import { Buffer } from 'buffer';
 import * as library from './library';
 
-var pages = 2000;
+var pages = 1000;
 var coredump;
 var code;
 var urlRoot;
