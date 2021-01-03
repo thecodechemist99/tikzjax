@@ -1,0 +1,14 @@
+[
+	"tikzlibrarycircuits.ee.IEC.code.tex",
+	"tikzlibraryarrows.code.tex",
+	"pgflibraryarrows.code.tex",
+	"tikzlibrarycircuits.ee.code.tex",
+	"tikzlibrarycircuits.code.tex",
+	"tikzlibrarycalc.code.tex",
+	"tikzlibrarydecorations.markings.code.tex",
+	"tikzlibrarydecorations.code.tex",
+	"pgfmoduledecorations.code.tex",
+	"pgflibrarydecorations.markings.code.tex",
+	"pgflibraryshapes.gates.ee.code.tex",
+	"pgflibraryshapes.gates.ee.IEC.code.tex"
+]
