@@ -59,16 +59,24 @@ expose({
 		library.deleteEverything();
 
 		// Load requested packages.
-		if (dataset.packages) await loadLibList(dataset.packages.split(","), "packages");
+		let packageList = dataset.packages ? dataset.packages.split(",") : [];
+		await loadLibList(packageList, "packages");
 
 		// Load requested tikz libraries.
 		if (dataset.tikzLibraries) await loadLibList(dataset.tikzLibraries.split(","), "tikz_libs");
 
-		input = (dataset.packages ? ('\\usepackage{' + dataset.packages + '}') : '') +
-			(dataset.tikzLibraries ? ('\\usetikzlibrary{' + dataset.tikzLibraries + '}') : '') +
+		let packageOptions = dataset.packageOptions ? JSON.parse(dataset.packageOptions) : {};
+
+		input = packageList.reduce((usePackageString, thisPackage) => {
+			usePackageString += '\\usepackage' +
+				(thisPackage in packageOptions ? `[${packageOptions[thisPackage]}]` : '') +
+				`{${thisPackage}}`;
+			return usePackageString;
+		}, "") +
+			(dataset.tikzLibraries ? `\\usetikzlibrary{${dataset.tikzLibraries}}` : '') +
 			(dataset.addToPreamble || '') +
 			'\\begin{document}\\begin{tikzpicture}' +
-			(dataset.tikzOptions ? ('[' + dataset.tikzOptions + ']') : '') + '\n'
+			(dataset.tikzOptions ? `[${dataset.tikzOptions}]` : '') + '\n'
 			+ input + '\n\\end{tikzpicture}\\end{document}\n';
 
 		library.writeFileSync("input.tex", Buffer.from(input));
