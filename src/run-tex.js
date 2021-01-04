@@ -56,8 +56,6 @@ expose({
 		postMessage("LaTeX Initialized");
 	},
 	texify: async function(input, dataset) {
-		library.deleteEverything();
-
 		// Load requested packages.
 		let packageList = dataset.packages ? dataset.packages.split(",") : [];
 		await loadLibList(packageList, "packages");
@@ -96,7 +94,11 @@ expose({
 
 		library.flushConsole();
 
-		return Transfer(library.readFileSync("input.dvi").buffer);
+		let dvi = library.readFileSync("input.dvi").buffer;
+
+		library.deleteEverything();
+
+		return Transfer(dvi);
 	},
 	// Hack to keep the worker thread alive in Firefox.
 	queryStatus: function() { return Date.now(); }
