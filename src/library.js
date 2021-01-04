@@ -3,6 +3,7 @@ import { Buffer } from 'buffer';
 
 var filesystem = {};
 var files = [];
+var showConsole = false;
 var consoleBuffer = "";
 var memory = null;
 var inputBuffer = null;
@@ -14,6 +15,7 @@ export function deleteEverything() {
 	memory = null;
 	inputBuffer = null;
 	callback = null;
+	showConsole = false;
 }
 
 export function writeFileSync(filename, buffer)
@@ -89,6 +91,7 @@ function readSync(file, buffer, pointer, length, seek)
 }
 
 function writeToConsole(x) {
+	if (!showConsole) return;
 	consoleBuffer += x;
 	if (consoleBuffer.indexOf("\n") >= 0) {
 		let lines = consoleBuffer.split("\n");
@@ -97,6 +100,10 @@ function writeToConsole(x) {
 			if (line.length) postMessage(line);
 		}
 	}
+}
+
+export function setShowConsole() {
+	showConsole = true;
 }
 
 export function flushConsole() {
