@@ -53,18 +53,18 @@ expose({
 		coredump = new Uint8Array(await loadDecompress('core.dump.gz'), 0, pages * 65536);
 	},
 	texify: async function(input, dataset) {
-		// Load requested packages.
-		let packageList = dataset.packages ? dataset.packages.split(",") : [];
-		await loadLibList(packageList, "packages");
+		// Load requested tex packages.
+		let packageList = dataset.texPackages ? dataset.texPackages.split(",") : [];
+		await loadLibList(packageList, "tex_packages");
 
 		// Load requested tikz libraries.
 		if (dataset.tikzLibraries) await loadLibList(dataset.tikzLibraries.split(","), "tikz_libs");
 
-		let packageOptions = dataset.packageOptions ? JSON.parse(dataset.packageOptions) : {};
+		let texPackageOptions = dataset.texPackageOptions ? JSON.parse(dataset.texPackageOptions) : {};
 
 		input = packageList.reduce((usePackageString, thisPackage) => {
 			usePackageString += '\\usepackage' +
-				(thisPackage in packageOptions ? `[${packageOptions[thisPackage]}]` : '') +
+				(thisPackage in texPackageOptions ? `[${texPackageOptions[thisPackage]}]` : '') +
 				`{${thisPackage}}`;
 			return usePackageString;
 		}, "") +

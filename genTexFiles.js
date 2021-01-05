@@ -2,7 +2,7 @@ var fs = require('fs');
 var pako = require('pako');
 var spawnSync = require('child_process').spawnSync;
 
-const inputDirs = ['packages', 'tikz_libs'];
+const inputDirs = ['tex_packages', 'tikz_libs'];
 
 function locateSystemTexFile(filename) {
 	let sysFile = spawnSync('kpsewhich', [filename]).stdout.toString().trim();
