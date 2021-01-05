@@ -2,6 +2,7 @@ import { dvi2html } from '../../dvi2html';
 import { Writable } from 'stream-browserify';
 import { Buffer } from 'buffer';
 import { Worker, spawn, Thread } from 'threads';
+import localForage from "localforage";
 import md5 from 'md5';
 import '../css/loader.css';
 
@@ -27,7 +28,7 @@ async function processPage() {
 			div.classList = elt.classList;
 			div.classList.add("tikzjax-container");
 
-			let savedSVG = sessionStorage.getItem("svg:" + md5(JSON.stringify(elt.dataset) + elt.childNodes[0].nodeValue));
+			let savedSVG = await localForage.getItem(md5(JSON.stringify(elt.dataset) + elt.childNodes[0].nodeValue));
 
 			if (savedSVG) {
 				div.innerHTML = savedSVG;
@@ -107,7 +108,7 @@ async function processPage() {
 			svg[0].style.height = '100%';
 
 			try {
-				sessionStorage.setItem("svg:" + md5hash, div.innerHTML);
+				await localForage.setItem(md5hash, div.innerHTML);
 			} catch (err) {
 				console.log(err);
 			}
@@ -175,6 +176,7 @@ async function initializeWorker() {
 }
 
 window.addEventListener('load', async () => {
+	localForage.config({ name: 'TikzJax', storeName: 'svgImages' });
 	window.TikzJax = {
 		typeset: async function() {
 			const processPageEvent = new Event('tikzjax-process-page', { bubbles: true});
