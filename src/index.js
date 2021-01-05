@@ -28,7 +28,9 @@ async function processPage() {
 			div.classList = elt.classList;
 			div.classList.add("tikzjax-container");
 
-			let savedSVG = await localForage.getItem(md5(JSON.stringify(elt.dataset) + elt.childNodes[0].nodeValue));
+			elt.md5hash = md5(JSON.stringify(elt.dataset) + elt.childNodes[0].nodeValue);
+
+			let savedSVG = await localForage.getItem(elt.md5hash);
 
 			if (savedSVG) {
 				div.innerHTML = savedSVG;
@@ -90,15 +92,13 @@ async function processPage() {
 			div.style.height = elt.getAttribute("height") || machine.paperheight.toString() + "pt";
 			div.style.position = null;
 
-			let md5hash = md5(JSON.stringify(elt.dataset) + text);
-
 			let ids = html.match(/\bid="[^"]*"/g);
 			if (ids) {
 				// Sort the ids from longest to shortest.
 				ids.sort((a, b) => { return b.length - a.length; });
 				for (let id of ids) {
 					let pgfIdString = id.replace(/id="pgf(.*)"/, "$1");
-					html = html.replaceAll("pgf" + pgfIdString, `pgf${md5hash}${pgfIdString}`);
+					html = html.replaceAll("pgf" + pgfIdString, `pgf${elt.md5hash}${pgfIdString}`);
 				}
 			}
 			div.innerHTML = html;
@@ -108,7 +108,7 @@ async function processPage() {
 			svg[0].style.height = '100%';
 
 			try {
-				await localForage.setItem(md5hash, div.innerHTML);
+				await localForage.setItem(elt.md5hash, div.innerHTML);
 			} catch (err) {
 				console.log(err);
 			}
