@@ -93,9 +93,15 @@ async function processPage() {
 
 			let ids = html.match(/\bid="[^"]*"/g);
 			if (ids) {
+				// Sort the ids from longest to shortest.
+				ids.sort((a, b) => {
+					if (a.length < b.length) return 1;
+					if (a.length > b.length) return -1;
+					return 0;
+				});
 				for (let id of ids) {
-					let idString = id.replace(/id="(.*)"/, "$1");
-					html = html.replaceAll(idString, `${md5hash}${idString}`);
+					let pgfIdString = id.replace(/id="pgf(.*)"/, "$1");
+					html = html.replaceAll("pgf" + pgfIdString, `pgf${md5hash}${pgfIdString}`);
 				}
 			}
 			div.innerHTML = html;
