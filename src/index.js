@@ -33,16 +33,16 @@ async function processPage() {
 				div.innerHTML = savedSVG;
 
 				let svg = div.getElementsByTagName('svg');
-				div.style.width = elt.dataset.width || svg[0].getAttribute("width");
-				div.style.height = elt.dataset.height || svg[0].getAttribute("height");
+				div.style.width = elt.getAttribute("width") || svg[0].getAttribute("width");
+				div.style.height = elt.getAttribute("height") || svg[0].getAttribute("height");
 
 				// Emit a bubbling event that the svg is ready.
 				const loadFinishedEvent = new Event('tikzjax-load-finished', { bubbles: true});
 				div.dispatchEvent(loadFinishedEvent);
 			} else {
 				texQueue.push(elt);
-				div.style.width = elt.dataset.width || 100 + "px";
-				div.style.height = elt.dataset.height || 100 + "px";
+				div.style.width = elt.getAttribute("width") || 100 + "px";
+				div.style.height = elt.getAttribute("height") || 100 + "px";
 				div.style.position = 'relative';
 
 				// Add another div with a loading background and another div to show a spinning loader class.
@@ -85,8 +85,8 @@ async function processPage() {
 
 			let machine = await dvi2html(streamBuffer(), page);
 
-			div.style.width = elt.dataset.width || machine.paperwidth.toString() + "pt";
-			div.style.height = elt.dataset.height || machine.paperheight.toString() + "pt";
+			div.style.width = elt.getAttribute("width") || machine.paperwidth.toString() + "pt";
+			div.style.height = elt.getAttribute("height") || machine.paperheight.toString() + "pt";
 			div.style.position = null;
 
 			let md5hash = md5(JSON.stringify(elt.dataset) + text);
@@ -94,11 +94,7 @@ async function processPage() {
 			let ids = html.match(/\bid="[^"]*"/g);
 			if (ids) {
 				// Sort the ids from longest to shortest.
-				ids.sort((a, b) => {
-					if (a.length < b.length) return 1;
-					if (a.length > b.length) return -1;
-					return 0;
-				});
+				ids.sort((a, b) => { return b.length - a.length; });
 				for (let id of ids) {
 					let pgfIdString = id.replace(/id="pgf(.*)"/, "$1");
 					html = html.replaceAll("pgf" + pgfIdString, `pgf${md5hash}${pgfIdString}`);
