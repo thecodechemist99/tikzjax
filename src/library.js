@@ -211,12 +211,6 @@ export function printNewline(descriptor, x) {
 	writeSync(file, Buffer.from("\n"));
 }
 
-export function enterFunction(x, stack) {
-}
-
-export function leaveFunction(x, stack) {
-}
-
 export function reset(length, pointer) {
 	var buffer = new Uint8Array(memory, pointer, length);
 	var filename = String.fromCharCode.apply(null, buffer);
