@@ -8,13 +8,11 @@ var coredump;
 var code;
 var urlRoot;
 
-async function loadDecompress(file, string = false) {
+async function loadDecompress(file) {
 	let response = await fetch(`${urlRoot}/${file}`);
 	if (response.ok) {
-		let inflateOptions = {};
-		if (string) inflateOptions.to = 'string';
 		const reader = response.body.getReader();
-		const inf = new pako.Inflate(inflateOptions);
+		const inf = new pako.Inflate();
 
 		while (true) {
 			const {done, value} = await reader.read();
@@ -37,7 +35,7 @@ async function loadLibList(libNames, dir) {
 			let fileList = JSON.parse(await response.text());
 			for (const filename of fileList) {
 				if (library.fileExists(filename)) continue;
-				let data = await loadDecompress(`tex_files/${filename}.gz`, true);
+				let data = await loadDecompress(`tex_files/${filename}.gz`);
 				library.writeFileSync(filename, data);
 			}
 		} else {

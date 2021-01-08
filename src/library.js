@@ -20,7 +20,7 @@ export function deleteEverything() {
 
 export function writeFileSync(filename, buffer)
 {
-	filesystem[filename] = btoa(buffer);
+	filesystem[filename] = buffer;
 }
 
 export function fileExists(filename) {
@@ -43,7 +43,7 @@ function openSync(filename, mode)
 	let buffer = new Uint8Array();
 
 	if (filesystem[filename]) {
-		buffer = Uint8Array.from(Buffer.from(filesystem[filename], 'base64'));
+		buffer = filesystem[filename];
 	} else if (filename.match(/\.tfm$/)) {
 		buffer = Uint8Array.from(tfmData(filename.replace(/\.tfm$/, '')));
 	} else if (mode == "r") {
