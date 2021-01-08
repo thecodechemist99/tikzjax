@@ -18,7 +18,7 @@
 	"pgfplotsbinary.code.tex",
 	"pgfplotsbinary.data.code.tex",
 	"pgfplotsutil.verb.code.tex",
-	"tikzlibrarypgfplots.surfshading.code.tex",
+	"pgflibrarypgfplots.surfshading.code.tex",
 	"pgfplotscolormap.code.tex",
 	"pgfplotscolor.code.tex",
 	"pgfplotsstackedplots.code.tex",

@@ -46,6 +46,18 @@ function openSync(filename, mode)
 		buffer = Uint8Array.from(Buffer.from(filesystem[filename], 'base64'));
 	} else if (filename.match(/\.tfm$/)) {
 		buffer = Uint8Array.from(tfmData(filename.replace(/\.tfm$/, '')));
+	} else if (mode == "r") {
+		// If this file has been opened before without an error, that means it was written to.
+		// In that case assume the file can now be opened, so create a fake file.
+		// Otherwise it is a file that should be reported as not found.
+		let descriptor = files.findIndex(element => element.filename == filename && !element.erstat);
+		if (descriptor == -1) {
+			files.push({
+				filename: filename,
+				erstat: 1
+			});
+			return files.length - 1;
+		}
 	}
 
 	files.push({ filename: filename,
@@ -215,10 +227,15 @@ export function reset(length, pointer) {
 	var buffer = new Uint8Array(memory, pointer, length);
 	var filename = String.fromCharCode.apply(null, buffer);
 
+	if (filename.startsWith('{')) {
+		filename = filename.replace(/^{/g, '');
+		filename = filename.replace(/}.*/g, '');
+	}
+
 	filename = filename.replace(/ +$/g, '');
 	filename = filename.replace(/^\*/, '');
-	filename = filename.replace(/"/g, '');
 	filename = filename.replace(/^TeXfonts:/, '');
+	filename = filename.replace(/"/g, '');
 
 	if (filename == 'TeXformats:TEX.POOL')
 		filename = "tex.pool";

@@ -4,25 +4,6 @@ var spawnSync = require('child_process').spawnSync;
 
 const inputDirs = ['tex_packages', 'tikz_libs'];
 
-function locateSystemTexFile(filename) {
-	let sysFile = spawnSync('kpsewhich', [filename]).stdout.toString().trim();
-
-	// Tex requests some tikz library files with the name
-	// tikzlibrary<libname>.code.tex.  However, the actual file on the system is
-	// pgflibrary<libname>.code.tex.  Somehow latex and pdflatex resolve this to the
-	// correct file, but tex/etex do not.  This attempts to deal with that.
-	if (sysFile == '' && filename.startsWith('tikzlibrary'))
-		sysFile = spawnSync('kpsewhich', [filename.replace(/^tikzlibrary/, "pgflibrary")]).stdout.toString().trim();
-
-	if (sysFile == '') {
-		// If the file still was not located, try with the basename.
-		let basename = filename.slice(filename.lastIndexOf('/') + 1);
-		sysFile = spawnSync('kpsewhich', [basename]).stdout.toString().trim();
-	}
-
-	return sysFile;
-}
-
 fs.mkdirSync('./dist/tex_files', { recursive: true });
 
 var processedFiles = [];
@@ -42,8 +23,7 @@ for (const inputDir of inputDirs) {
 			if (!texFileName || processedFiles.includes(texFileName)) continue;
 			console.log(`\tAttempting to locate ${texFileName}.`);
 
-			let sysFile = locateSystemTexFile(texFileName);
-
+			let sysFile = spawnSync('kpsewhich', [texFileName]).stdout.toString().trim();
 			if (sysFile == '') {
 				console.log(`\t\x1b[31mUnable to locate ${texFileName}.\x1b[0m`);
 				continue;
