@@ -176,6 +176,8 @@ async function initializeWorker() {
 }
 
 window.addEventListener('load', async () => {
+	if (window.TikzJax) return;
+
 	localForage.config({ name: 'TikzJax', storeName: 'svgImages' });
 	window.TikzJax = {
 		typeset: async function() {
@@ -189,7 +191,9 @@ window.addEventListener('load', async () => {
 
 	TikzJax.typeset();
 	TikzJax.texWorker = initializeWorker();
+
+	// Close the thread when the window is closed.
+	window.addEventListener('unload', async () => await Thread.terminate(window.TikzJax.texWorker));
 });
 
-// Close the thread when the window is closed.
-window.addEventListener('unload', async () => await Thread.terminate(window.TikzJax.texWorker));
+
