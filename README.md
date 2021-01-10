@@ -153,11 +153,6 @@ document.addEventListener('tikzjax-load-finished', function(e) {
 });
 ```
 
-If a `<script type="text/tikz">` tag is added to the DOM after the page is loaded, then
-call `TikzJax.typeset()` after the `<script>` tag is added to make tikzjax generate an SVG
-image from the tag.  Note that `TikzJax` is the only global javascript object created by
-this library, and is there for this purpose only.
-
 ## Building
 
 First clone this GitHub repository (https://github.com/drgrice1/tikzjax) and switch to the

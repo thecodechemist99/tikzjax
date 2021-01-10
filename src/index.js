@@ -14,8 +14,11 @@ if (document.currentScript === undefined) {
 
 // Determine where this script was loaded from. We will use that to find the files to load.
 var url = new URL(document.currentScript.src);
+var processQueue = [];
+var observer = null;
+var texWorker;
 
-async function processPage() {
+async function process(scripts) {
 	let currentProcessPromise = new Promise(async function(resolve, reject) {
 		let texQueue = [];
 
@@ -64,7 +67,7 @@ async function processPage() {
 
 			let dvi;
 			try {
-				dvi = await window.TikzJax.texWorker.texify(text, Object.assign({}, elt.dataset));
+				dvi = await texWorker.texify(text, Object.assign({}, elt.dataset));
 			} catch (err) {
 				div.style.width = 'unset';
 				div.style.height = 'unset';
@@ -118,29 +121,24 @@ async function processPage() {
 			div.dispatchEvent(loadFinishedEvent);
 		};
 
-		let scripts = document.getElementsByTagName('script');
-		let tikzScripts = Array.prototype.slice.call(scripts).filter(
-			(e) => (e.getAttribute('type') === 'text/tikz')
-		);
-
 		// First check the session storage to see if an image is already cached,
 		// and if so load that.  Otherwise show a spinning loader, and push the
 		// element onto the queue to run tex on.
-		for (let element of tikzScripts) {
+		for (let element of scripts) {
 			await loadCachedOrSetupLoader(element);
 		}
 
 		// End here if there is nothing to run tex on.
 		if (!texQueue.length) return resolve();
 
-		window.TikzJax.texWorker = await window.TikzJax.texWorker;
+		texWorker = await texWorker;
 
 		// Hack to keep the worker thread alive in Firefox.
-		let queryInterval = setInterval(async () => await window.TikzJax.texWorker.queryStatus(), 1000);
+		let queryInterval = setInterval(async () => await texWorker.queryStatus(), 1000);
 
-		window.TikzJax.processQueue.push(currentProcessPromise);
-		if (window.TikzJax.processQueue.length > 1) {
-			await window.TikzJax.processQueue[window.TikzJax.processQueue.length - 2];
+		processQueue.push(currentProcessPromise);
+		if (processQueue.length > 1) {
+			await processQueue[processQueue.length - 2];
 		}
 
 		// Run tex on the text in each of the scripts that wasn't cached.
@@ -150,7 +148,7 @@ async function processPage() {
 
 		clearInterval(queryInterval);
 
-		window.TikzJax.processQueue.shift();
+		processQueue.shift();
 
 		return resolve();
 	});
@@ -175,25 +173,46 @@ async function initializeWorker() {
 	return tex;
 }
 
-window.addEventListener('load', async () => {
-	if (window.TikzJax) return;
+async function initialize() {
+	// Process any text/tikz scripts that are on the page initially.
+	process(Array.prototype.slice.call(document.getElementsByTagName('script')).filter(
+		(e) => (e.getAttribute('type') === 'text/tikz')
+	));
+
+	// If a text/tikz script is added to the page later, then process those.
+	observer = new MutationObserver((mutationsList, observer) => {
+		let newTikzScripts = [];
+		for (const mutation of mutationsList) {
+			for (const node of mutation.addedNodes) {
+				if (node.tagName && node.tagName.toLowerCase() == 'script' && node.type == "text/tikz")
+					newTikzScripts.push(node);
+				else if (node.getElementsByTagName)
+					newTikzScripts.push.apply(newTikzScripts,
+						Array.prototype.slice.call(node.getElementsByTagName('script')).filter(
+							(e) => (e.getAttribute('type') === 'text/tikz')
+						)
+					);
+			}
+		}
+		process(newTikzScripts);
+	});
+	observer.observe(document.getElementsByTagName('body')[0], { childList: true, subtree: true });
+}
+
+async function shutdown() {
+	if (observer) observer.disconnect();
+	await Thread.terminate(texWorker);
+}
+
+if (!window.TikzJax) {
+	window.TikzJax = true;
 
 	localForage.config({ name: 'TikzJax', storeName: 'svgImages' });
-	window.TikzJax = {
-		typeset: async function() {
-			const processPageEvent = new Event('tikzjax-process-page', { bubbles: true});
-			document.dispatchEvent(processPageEvent);
-		},
-		processQueue: []
-	};
+	texWorker = initializeWorker();
 
-	document.addEventListener('tikzjax-process-page', processPage);
+	if (document.readyState == 'complete') initialize();
+	else window.addEventListener('load', initialize);
 
-	TikzJax.typeset();
-	TikzJax.texWorker = initializeWorker();
-
-	// Close the thread when the window is closed.
-	window.addEventListener('unload', async () => await Thread.terminate(window.TikzJax.texWorker));
-});
-
-
+	// Stop the mutation observer and close the thread when the window is closed.
+	window.addEventListener('unload', shutdown);
+}
