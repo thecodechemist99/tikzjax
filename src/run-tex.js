@@ -52,18 +52,15 @@ expose({
 	},
 	texify: async function(input, dataset) {
 		// Load requested tex packages.
-		let packageList = dataset.texPackages ? dataset.texPackages.split(",") : [];
-		await loadLibList(packageList, "tex_packages");
+		let texPackages = dataset.texPackages ? JSON.parse(dataset.texPackages) : {};
+		await loadLibList(Object.keys(texPackages), "tex_packages");
 
 		// Load requested tikz libraries.
 		if (dataset.tikzLibraries) await loadLibList(dataset.tikzLibraries.split(","), "tikz_libs");
 
-		let texPackageOptions = dataset.texPackageOptions ? JSON.parse(dataset.texPackageOptions) : {};
-
-		input = packageList.reduce((usePackageString, thisPackage) => {
-			usePackageString += '\\usepackage' +
-				(thisPackage in texPackageOptions ? `[${texPackageOptions[thisPackage]}]` : '') +
-				`{${thisPackage}}`;
+		input = Object.entries(texPackages).reduce((usePackageString, thisPackage) => {
+			usePackageString += '\\usepackage' + (thisPackage[1] ? `[${thisPackage[1]}]` : '') +
+				`{${thisPackage[0]}}`;
 			return usePackageString;
 		}, "") +
 			(dataset.tikzLibraries ? `\\usetikzlibrary{${dataset.tikzLibraries}}` : '') +

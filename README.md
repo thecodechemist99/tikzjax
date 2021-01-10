@@ -85,37 +85,27 @@ will result in
 
 The remaining options are all set as data attributes on the script tag.
 
-Use `data-tex-packages` to load and use TeX packages.
+Use `data-tex-packages` to load and use TeX packages.  The value of this attribute must
+be a string that will parse to a valid javascript object via the javascript JSON.parse
+method.  The keys of the object should be the TeX package names, and the value of each
+key should be the package options to set.
 For example:
 ```html
-<script type="text/tikz" data-tex-packages="arrows,pgfplots">
+<script type="text/tikz" data-tex-packages="custom-package"
+	data-tex-package='{"pgfplots":"","custom-package":"option=special"}'>
 ```
 will add
 ```tex
 \usepackage{array}\usepackage{pgfplots}
+\usepackage[option=special]{custom-package}
 ```
 to the preamble of the TeX input.  Note that TeX packages must be loaded in this way.
 This will ensure that the needed TeX system files are made available to the TeX
 WebAssembly for successful compilation.  Note that the only TeX packages that are
 available at this time are `array`, `pgfplots`, and `tikz-3dplot`.  Additional packages
 can be made available by adding a file `<package-name>.json` that contains an array of
-file names needed by the package to the `tex_packages` directory and adding the gzipped
+file names needed by the package to the `tex_packages` directory, and adding the gzipped
 files in that array to the `tex_files` directory.
-
-Use `data-tex-package-options` to add options for the loaded TeX packages.  The value of
-this attribute must be a string that will parse to a valid javascript object via the
-javascript JSON.parse method.  The keys of the object should be the TeX package names and
-the value of each key the package options to set.
-For example
-```html
-<script type="text/tikz" data-tex-packages="custom-package"
-	data-tex-package-options='{"custom-package":"option=special"}'>
-```
-will result in
-```tex
-\usepackage[option=special]{custom-package}
-```
-being added to the preamble of the TeX input.
 
 Use `data-tikz-libraries` to load and use TikZ libraries.
 For example:
@@ -131,6 +121,8 @@ be loaded in this way to ensure that the needed TeX system files are made availa
 TeX WebAssembly for successful compilation.  Note that all known TikZ libraries are
 available (with the exception of some that don't make sense in this context, like the
 external library).
+
+Use `data-add-to-preamble="..."` to add to the TeX preamble.
 
 Use `data-show-console="true"` to enable the output of TeX in the console.  By default,
 console output is disabled and nothing is shown in the browser console.  If this data
