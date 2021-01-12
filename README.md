@@ -31,7 +31,7 @@ Then in the `<body>`, include TikZ code such as
 ```
 
 The TikZ code will be compiled into an SVG image, and the `<script>` element will be
-replaced with a `<div>` element containing the generated SVG image.
+replaced with the generated SVG image.
 
 ## How does this work?
 
@@ -59,31 +59,14 @@ will be run again to update the image.
 
 ## Options
 
-There are several attributes that can be set for a "text/tikz" `<script>` tag that affect
-the generation of the resulting SVG image, or change the way the TikzJax javascript
-behaves.
+There are several data attributes that can be set for a "text/tikz" `<script>` tag that
+affect the generation of the resulting SVG image, or change the way the TikzJax
+javascript behaves.
 
-The `class` attribute of the `<script>` tag will be used for the `class` attribute of the
-`<div>` element that is created containing the generated SVG image.
-
-The values of the `width` and `height` attributes set on the `<script>` tag will be used
-for the `width` and `height` style values of the containing `<div>` element.  If these
-attributes are not set the `width` and `height` style values of the containing `<div>`
-will be set to the computed width and height of the generated SVG image.  Note that the
-generated SVG image will have the `width` and `height` style values both set to 100%.  So
-the image will shrink or grow (maintaining its aspect ratio) to fit into the containing
-`<div>`.
-
-For example:
-```html
-<script type="text/tikz" class="my-custom-class" width="200px" height="100px">...</script>
-```
-will result in
-```html
-<div class="my-custom-class" style="width:200px;height:100px"><svg>...</svg></div>
-```
-
-The remaining options are all set as data attributes on the script tag.
+The values of the `data-width` and `data-height` attributes set on the `<script>` tag
+will be used for the width and height of a loader image.  This is an svg image that is
+displayed while TeX is being run to generate the svg image, and contains a spinner to
+indicate to the user that work is being done.  These dimensions are in points.
 
 Use `data-tex-packages` to load and use TeX packages.  The value of this attribute must
 be a string that will parse to a valid javascript object via the javascript JSON.parse
@@ -138,17 +121,29 @@ Transcript written on input.log.
 output to the console.  This is useful when testing your TikZ code to ensure that it
 compiles successfully, but should be left disabled for production.
 
+## CSS Classes
+
+For your convenience, some css classes are provided that will apply common styles to the
+svg image.  To use these classes place the "text/tikz" script tags inside an html element
+with one of the following classes.
+
+If you add the css class `tikzjax-container` to the containing element, then
+`overflow:visible` will be added to the style of the generated `<svg>` image.
+
+If you add the css class `tikzjax-scaled-container` to the containing element, then
+`overflow:visible`, `width:100%`, and `height:100%` will be added to the style of the
+generated `<svg>` image.
+
 ## Other JavaScript Interactions
 
-Note that once tikzjax completes the generation of an SVG image, the containing `<div>`
-will emit the `tikzjax-load-finished` event.  You can use this event to do something with
-the containing `<div>` or generated SVG image in javascript.
+Note that once tikzjax completes the generation of an SVG image, the generated `<svg>`
+image will emit the `tikzjax-load-finished` event.  You can use this event to do
+something with the generated SVG image in javascript.
 
 For example:
 ```javascript
 document.addEventListener('tikzjax-load-finished', function(e) {
-	var div = e.srcElement;
-	var svg = div.firstChild;
+	var svg = e.srcElement;
 	...
 });
 ```

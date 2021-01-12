@@ -4,6 +4,7 @@ import { Buffer } from 'buffer';
 import { Worker, spawn, Thread } from 'threads';
 import localForage from "localforage";
 import md5 from 'md5';
+import '../css/container.css';
 import '../css/loader.css';
 
 // document.currentScript polyfill
@@ -18,61 +19,45 @@ var processQueue = [];
 var observer = null;
 var texWorker;
 
-async function process(scripts) {
+async function processTikzScripts(scripts) {
 	let currentProcessPromise = new Promise(async function(resolve, reject) {
 		let texQueue = [];
 
 		async function loadCachedOrSetupLoader(elt) {
-			let div = document.createElement('div');
-			elt.replaceWith(div);
-			elt.div = div;
-
-			// Transfer any classes set for the script element to the new div.
-			div.classList = elt.classList;
-			div.classList.add("tikzjax-container");
-
 			elt.md5hash = md5(JSON.stringify(elt.dataset) + elt.childNodes[0].nodeValue);
 
 			let savedSVG = await localForage.getItem(elt.md5hash);
 
 			if (savedSVG) {
-				div.innerHTML = savedSVG;
-
-				let svg = div.getElementsByTagName('svg');
-				div.style.width = elt.getAttribute("width") || svg[0].getAttribute("width");
-				div.style.height = elt.getAttribute("height") || svg[0].getAttribute("height");
+				let svg = document.createRange().createContextualFragment(savedSVG).firstChild;
+				elt.replaceWith(svg);
 
 				// Emit a bubbling event that the svg is ready.
 				const loadFinishedEvent = new Event('tikzjax-load-finished', { bubbles: true});
-				div.dispatchEvent(loadFinishedEvent);
+				svg.dispatchEvent(loadFinishedEvent);
 			} else {
 				texQueue.push(elt);
-				div.style.width = elt.getAttribute("width") || 100 + "px";
-				div.style.height = elt.getAttribute("height") || 100 + "px";
-				div.style.position = 'relative';
 
-				// Add another div with a loading background and another div to show a spinning loader class.
-				let loaderBackgroundDiv = document.createElement('div');
-				loaderBackgroundDiv.classList.add('tj-loader-background');
-				div.appendChild(loaderBackgroundDiv);
-				let loaderDiv = document.createElement('div');
-				loaderDiv.classList.add('tj-loader-spinner');
-				div.appendChild(loaderDiv);
+				let width = parseFloat(elt.dataset.width) || 75;
+				let height = parseFloat(elt.dataset.height) || 75;
+
+				// Replace the elt with a spinning loader.
+				elt.loader = document.createRange().createContextualFragment(`<svg version='1.1' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' class='tj-loader' width='${width}pt' height='${height}pt' viewBox='0 0 ${width} ${height}'><rect width='${width}' height='${height}' rx='5pt' ry='5pt' fill='#000' fill-opacity='0.2'/><circle cx="${width / 2}" cy="${height / 2}" r="15" stroke="#f3f3f3" fill="none" stroke-width="3"></circle><circle class="tj-loader-spinner" cx="${width / 2}" cy="${height / 2}" r="15" stroke="#3498db" fill="none" stroke-width="3" stroke-linecap="round"></circle></svg>`).firstChild;
+				elt.replaceWith(elt.loader);
 			}
 		}
 
 		async function process(elt) {
 			let text = elt.childNodes[0].nodeValue;
-			let div = elt.div;
+			let loader = elt.loader;
 
 			let dvi;
 			try {
 				dvi = await texWorker.texify(text, Object.assign({}, elt.dataset));
 			} catch (err) {
-				div.style.width = 'unset';
-				div.style.height = 'unset';
 				console.log(err);
-				div.innerHTML = "Error generating image."
+				// Show the browser's image not found icon.
+				loader.outerHTML = "<img src='//invalid.site/img-not-found.png'/>";
 				return;
 			}
 
@@ -91,10 +76,6 @@ async function process(scripts) {
 
 			let machine = await dvi2html(streamBuffer(), page);
 
-			div.style.width = elt.getAttribute("width") || machine.paperwidth.toString() + "pt";
-			div.style.height = elt.getAttribute("height") || machine.paperheight.toString() + "pt";
-			div.style.position = null;
-
 			let ids = html.match(/\bid="[^"]*"/g);
 			if (ids) {
 				// Sort the ids from longest to shortest.
@@ -104,21 +85,19 @@ async function process(scripts) {
 					html = html.replaceAll("pgf" + pgfIdString, `pgf${elt.md5hash}${pgfIdString}`);
 				}
 			}
-			div.innerHTML = html;
 
-			let svg = div.getElementsByTagName('svg');
-			svg[0].style.width = '100%';
-			svg[0].style.height = '100%';
+			let svg = document.createRange().createContextualFragment(html).firstChild;
+			loader.replaceWith(svg);
 
 			try {
-				await localForage.setItem(elt.md5hash, div.innerHTML);
+				await localForage.setItem(elt.md5hash, svg.outerHTML);
 			} catch (err) {
 				console.log(err);
 			}
 
 			// Emit a bubbling event that the svg image generation is complete.
 			const loadFinishedEvent = new Event('tikzjax-load-finished', { bubbles: true});
-			div.dispatchEvent(loadFinishedEvent);
+			svg.dispatchEvent(loadFinishedEvent);
 		};
 
 		// First check the session storage to see if an image is already cached,
@@ -175,7 +154,7 @@ async function initializeWorker() {
 
 async function initialize() {
 	// Process any text/tikz scripts that are on the page initially.
-	process(Array.prototype.slice.call(document.getElementsByTagName('script')).filter(
+	processTikzScripts(Array.prototype.slice.call(document.getElementsByTagName('script')).filter(
 		(e) => (e.getAttribute('type') === 'text/tikz')
 	));
 
@@ -194,7 +173,7 @@ async function initialize() {
 					);
 			}
 		}
-		process(newTikzScripts);
+		processTikzScripts(newTikzScripts);
 	});
 	observer.observe(document.getElementsByTagName('body')[0], { childList: true, subtree: true });
 }
