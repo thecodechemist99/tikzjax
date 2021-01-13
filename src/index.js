@@ -5,7 +5,6 @@ import { Worker, spawn, Thread } from 'threads';
 import localForage from "localforage";
 import md5 from 'md5';
 import '../css/container.css';
-import '../css/loader.css';
 
 // document.currentScript polyfill
 if (document.currentScript === undefined) {
@@ -42,7 +41,7 @@ async function processTikzScripts(scripts) {
 				let height = parseFloat(elt.dataset.height) || 75;
 
 				// Replace the elt with a spinning loader.
-				elt.loader = document.createRange().createContextualFragment(`<svg version='1.1' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' class='tj-loader' width='${width}pt' height='${height}pt' viewBox='0 0 ${width} ${height}'><rect width='${width}' height='${height}' rx='5pt' ry='5pt' fill='#000' fill-opacity='0.2'/><circle cx="${width / 2}" cy="${height / 2}" r="15" stroke="#f3f3f3" fill="none" stroke-width="3"></circle><circle class="tj-loader-spinner" cx="${width / 2}" cy="${height / 2}" r="15" stroke="#3498db" fill="none" stroke-width="3" stroke-linecap="round"></circle></svg>`).firstChild;
+				elt.loader = document.createRange().createContextualFragment(`<svg version='1.1' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='${width}pt' height='${height}pt' viewBox='0 0 ${width} ${height}'><rect width='${width}' height='${height}' rx='5pt' ry='5pt' fill='#000' fill-opacity='0.2'/><circle cx="${width / 2}" cy="${height / 2}" r="15" stroke="#f3f3f3" fill="none" stroke-width="3"/><circle cx="${width / 2}" cy="${height / 2}" r="15" stroke="#3498db" fill="none" stroke-width="3" stroke-linecap="round"><animate attributeName="stroke-dasharray" begin="0s" dur="2s" values="56.5 37.7;1 93.2;56.5 37.7" keyTimes="0;0.5;1" repeatCount="indefinite"></animate><animate attributeName="stroke-dashoffset" begin="0s" dur="2s" from="0" to="188.5" repeatCount="indefinite"></animate></circle></svg>`).firstChild;
 				elt.replaceWith(elt.loader);
 			}
 		}
