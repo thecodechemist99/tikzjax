@@ -179,7 +179,7 @@ async function initialize() {
 
 async function shutdown() {
 	if (observer) observer.disconnect();
-	await Thread.terminate(texWorker);
+	await Thread.terminate(await texWorker);
 }
 
 if (!window.TikzJax) {
