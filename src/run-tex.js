@@ -1,6 +1,8 @@
-import { expose, Transfer } from "threads/worker";
+import { dvi2html } from '../../dvi2html';
+import { expose } from "threads/worker";
 import pako from 'pako';
 import { Buffer } from 'buffer';
+import { Writable } from 'stream-browserify';
 import * as library from './library';
 
 var pages = 1000;
@@ -66,8 +68,8 @@ expose({
 			(dataset.tikzLibraries ? `\\usetikzlibrary{${dataset.tikzLibraries}}` : '') +
 			(dataset.addToPreamble || '') +
 			'\\begin{document}\\begin{tikzpicture}' +
-			(dataset.tikzOptions ? `[${dataset.tikzOptions}]` : '') + '\n'
-			+ input + '\n\\end{tikzpicture}\\end{document}\n';
+			(dataset.tikzOptions ? `[${dataset.tikzOptions}]` : '') +
+			input + '\n\\end{tikzpicture}\\end{document}\n';
 
 		if (dataset.showConsole) library.setShowConsole();
 
@@ -92,8 +94,21 @@ expose({
 
 		library.deleteEverything();
 
-		return Transfer(dvi);
-	},
-	// Hack to keep the worker thread alive in Firefox.
-	queryStatus: function() { return Date.now(); }
+		let html = "";
+		const page = new Writable({
+			write(chunk, encoding, callback) {
+				html = html + chunk.toString();
+				callback();
+			}
+		});
+
+		async function* streamBuffer() {
+			yield Buffer.from(dvi);
+			return;
+		}
+
+		let machine = await dvi2html(streamBuffer(), page);
+
+		return html;
+	}
 });

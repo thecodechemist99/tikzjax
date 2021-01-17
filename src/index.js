@@ -1,6 +1,3 @@
-import { dvi2html } from '../../dvi2html';
-import { Writable } from 'stream-browserify';
-import { Buffer } from 'buffer';
 import { Worker, spawn, Thread } from 'threads';
 import localForage from "localforage";
 import md5 from 'md5';
@@ -50,9 +47,9 @@ async function processTikzScripts(scripts) {
 			let text = elt.childNodes[0].nodeValue;
 			let loader = elt.loader;
 
-			let dvi;
+			let html = "";
 			try {
-				dvi = await texWorker.texify(text, Object.assign({}, elt.dataset));
+				html = await texWorker.texify(text, Object.assign({}, elt.dataset));
 			} catch (err) {
 				console.log(err);
 				// Show the browser's image not found icon.
@@ -60,22 +57,7 @@ async function processTikzScripts(scripts) {
 				return;
 			}
 
-			let html = "";
-			const page = new Writable({
-				write(chunk, encoding, callback) {
-					html = html + chunk.toString();
-					callback();
-				}
-			});
-
-			async function* streamBuffer() {
-				yield Buffer.from(dvi);
-				return;
-			}
-
-			let machine = await dvi2html(streamBuffer(), page);
-
-			let ids = html.match(/\bid="[^"]*"/g);
+			let ids = html.match(/\bid="pgf[^"]*"/g);
 			if (ids) {
 				// Sort the ids from longest to shortest.
 				ids.sort((a, b) => { return b.length - a.length; });
@@ -111,9 +93,6 @@ async function processTikzScripts(scripts) {
 
 		texWorker = await texWorker;
 
-		// Hack to keep the worker thread alive in Firefox.
-		let queryInterval = setInterval(async () => await texWorker.queryStatus(), 1000);
-
 		processQueue.push(currentProcessPromise);
 		if (processQueue.length > 1) {
 			await processQueue[processQueue.length - 2];
@@ -123,8 +102,6 @@ async function processTikzScripts(scripts) {
 		for (let element of texQueue) {
 			await process(element);
 		}
-
-		clearInterval(queryInterval);
 
 		processQueue.shift();
 
