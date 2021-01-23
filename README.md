@@ -153,11 +153,7 @@ document.addEventListener('tikzjax-load-finished', function(e) {
 First clone this GitHub repository (https://github.com/drgrice1/tikzjax) and switch to the
 ww-modifications branch.
 
-Then clone my fork of dvi2html (https://github.com/drgrice1/dvi2html) in the same
-directory as the clone of this repository, and also switch to the ww-modifications branch.
-Follow the directions in the README to build dvi2html.
-
-Then clone my fork of web2js (https://github.com/drgrice1/web2js) and once again switch to
+Then clone my fork of web2js (https://github.com/drgrice1/web2js) and also switch to
 the ww-modifications branch.  Follow the directions in the README for a "quick path to
 generate the tex.wasm and core.dump files".  Then copy the generated core.dump and
 tex.wasm files to the tikzjax directory, and gzip them.

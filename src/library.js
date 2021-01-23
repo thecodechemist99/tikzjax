@@ -1,4 +1,4 @@
-import { tfmData } from '../../dvi2html';
+import { tfmData } from 'dvi2html';
 import { Buffer } from 'buffer';
 
 var filesystem = {};
