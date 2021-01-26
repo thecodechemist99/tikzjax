@@ -9,6 +9,51 @@ var memory = null;
 var inputBuffer = null;
 var callback = null;
 
+let wasmExports = null;
+let view = null;
+let fileLoader = null;
+var finished = null;
+
+export var pages = 1100;
+
+let DATA_ADDR = (pages - 100) * 1024 * 64;
+let END_ADDR = pages * 1024 * 64;
+let windingDepth = 0;
+let sleeping = false;
+
+function startUnwind() {
+	if (view) {
+		view[DATA_ADDR >> 2] = DATA_ADDR + 8;
+		view[DATA_ADDR + 4 >> 2] = END_ADDR;
+	}
+
+	wasmExports.asyncify_start_unwind(DATA_ADDR);
+	windingDepth = windingDepth + 1;
+}
+
+function startRewind() {
+	wasmExports.asyncify_start_rewind(DATA_ADDR);
+	wasmExports.main();
+}
+
+function stopRewind() {
+	windingDepth = windingDepth - 1;
+	wasmExports.asyncify_stop_rewind();
+}
+
+function deferredPromise() {
+	let _resolve, _reject;
+
+	let promise = new Promise((resolve, reject) => {
+		_resolve = resolve;
+		_reject = reject;
+	});
+	promise.resolve = _resolve;
+	promise.reject = _reject;
+
+	return promise;
+}
+
 export function deleteEverything() {
 	files = [];
 	filesystem = {};
@@ -16,15 +61,15 @@ export function deleteEverything() {
 	inputBuffer = null;
 	callback = null;
 	showConsole = false;
+	finished = null;
+	wasmExports = null;
+	view = null;
+	sleeping = false;
 }
 
 export function writeFileSync(filename, buffer)
 {
 	filesystem[filename] = buffer;
-}
-
-export function fileExists(filename) {
-	return filename in filesystem;
 }
 
 export function readFileSync(filename)
@@ -40,6 +85,12 @@ export function readFileSync(filename)
 
 function openSync(filename, mode)
 {
+	let initialSleepState = sleeping;
+	if (sleeping) {
+		stopRewind();
+		sleeping = false;
+	}
+
 	let buffer = new Uint8Array();
 
 	if (filesystem[filename]) {
@@ -48,21 +99,39 @@ function openSync(filename, mode)
 		buffer = Uint8Array.from(tfmData(filename.replace(/\.tfm$/, '')));
 	} else if (mode == "r") {
 		// If this file has been opened before without an error, that means it was written to.
-		// In that case assume the file can now be opened, so create a fake file.
-		// Otherwise it is a file that should be reported as not found.
+		// In that case assume the file can now be opened, so fall through and create a fake file below.
+		// Otherwise attempt to find it.
 		let descriptor = files.findIndex(element => element.filename == filename && !element.erstat);
 		if (descriptor == -1) {
-			files.push({
-				filename: filename,
-				erstat: 1
-			});
-			return files.length - 1;
+			if (initialSleepState || filename.match(/\.(aux|log|dvi)$/)) {
+				// If we are returning from sleep and the file is still not in the filesystem,
+				// or it is an aux, log, or dvi file, then report it as not found.
+				files.push({
+					filename: filename,
+					erstat: 1
+				});
+				return files.length - 1;
+			} else {
+				// Pause the web assembly execution, and attempt to load the file.
+				startUnwind();
+				sleeping = true;
+				setTimeout(async () => {
+					// Attempt to load the file.
+					try {
+						let data = await fileLoader(`tex_files/${filename}.gz`);
+						filesystem[filename] = data;
+					} catch (e) {}
+					startRewind();
+				}, 0);
+				return -1;
+			}
 		}
 	}
 
 	files.push({ filename: filename,
 		position: 0,
 		erstat: 0,
+		eoln: false,
 		buffer: buffer,
 		descriptor: files.length
 	});
@@ -118,19 +187,31 @@ export function setShowConsole() {
 	showConsole = true;
 }
 
-export function flushConsole() {
-	if (consoleBuffer.length) writeToConsole("\n");
-}
-
 // setup
 
 export function setMemory(m) {
 	memory = m;
+	view = new Int32Array(m);
 }
 
 export function setInput(input, cb) {
 	inputBuffer = input;
 	if (cb) callback = cb;
+}
+
+export function setFileLoader(c) {
+	fileLoader = c;
+}
+
+export async function executeAsync(_wasmExports) {
+	wasmExports = _wasmExports;
+
+	finished = deferredPromise();
+
+	wasmExports.main();
+	wasmExports.asyncify_stop_unwind();
+
+	return finished;
 }
 
 // provide time back to tex
@@ -227,15 +308,21 @@ export function reset(length, pointer) {
 	var buffer = new Uint8Array(memory, pointer, length);
 	var filename = String.fromCharCode.apply(null, buffer);
 
+	filename = filename.replace(/\000+$/g,'');
+
 	if (filename.startsWith('{')) {
 		filename = filename.replace(/^{/g, '');
 		filename = filename.replace(/}.*/g, '');
 	}
 
+	if (filename.startsWith('"')) {
+		filename = filename.replace(/^"/g, '');
+		filename = filename.replace(/".*/g, '');
+	}
+
 	filename = filename.replace(/ +$/g, '');
 	filename = filename.replace(/^\*/, '');
 	filename = filename.replace(/^TeXfonts:/, '');
-	filename = filename.replace(/"/g, '');
 
 	if (filename == 'TeXformats:TEX.POOL')
 		filename = "tex.pool";
@@ -245,7 +332,8 @@ export function reset(length, pointer) {
 			filename: "stdin",
 			stdin: true,
 			position: 0,
-			erstat: 0
+			erstat: 0,
+			eoln: false
 		});
 		return files.length - 1;
 	}
@@ -258,6 +346,11 @@ export function rewrite(length, pointer) {
 	var filename = String.fromCharCode.apply(null, buffer);
 
 	filename = filename.replace(/ +$/g, '');
+
+	if (filename.startsWith('"')) {
+		filename = filename.replace(/^"/g, '');
+		filename = filename.replace(/".*/g, '');
+	}
 
 	if (filename == "TTY:") {
 		files.push({ filename: "stdout",
@@ -305,8 +398,8 @@ export function get(descriptor, pointer, length) {
 		if (file.position >= inputBuffer.length) {
 			buffer[pointer] = 13;
 			file.eof = true;
-			file.eoln = true;
 			if (callback) callback();
+			tex_final_end();
 		} else
 			buffer[pointer] = inputBuffer[file.position].charCodeAt(0);
 	} else {
@@ -337,4 +430,9 @@ export function put(descriptor, pointer, length) {
 	var buffer = new Uint8Array(memory);
 
 	writeSync(file, buffer, pointer, length);
+}
+
+export function tex_final_end() {
+	if (consoleBuffer.length) writeToConsole("\n");
+	if (finished) finished.resolve();
 }

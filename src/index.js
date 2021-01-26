@@ -113,12 +113,13 @@ async function processTikzScripts(scripts) {
 async function initializeWorker() {
 	var urlRoot = url.href.replace(/\/tikzjax(\.min)?\.js$/, '');
 
-	// Load the assembly and core dump.
+	// Set up the worker thread.
 	const tex = await spawn(new Worker(`${urlRoot}/run-tex.js`));
 	Thread.events(tex).subscribe(e => {
 		if (e.type == "message" && typeof(e.data) === "string") console.log(e.data);
 	});
 
+	// Load the assembly and core dump.
 	try {
 		await tex.load(urlRoot);
 	} catch (err) {

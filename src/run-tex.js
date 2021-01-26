@@ -5,7 +5,6 @@ import { Buffer } from 'buffer';
 import { Writable } from 'stream-browserify';
 import * as library from './library';
 
-var pages = 1000;
 var coredump;
 var code;
 var urlRoot;
@@ -30,35 +29,15 @@ async function loadDecompress(file) {
 	}
 }
 
-async function loadLibList(libNames, dir) {
-	for (const libName of libNames) {
-		let response = await fetch(`${urlRoot}/${dir}/${libName}.json`);
-		if (response.ok) {
-			let fileList = JSON.parse(await response.text());
-			for (const filename of fileList) {
-				if (library.fileExists(filename)) continue;
-				let data = await loadDecompress(`tex_files/${filename}.gz`);
-				library.writeFileSync(filename, data);
-			}
-		} else {
-			throw `Unable to load ${dir}/${libName}.json.  File not available`;
-		}
-	}
-}
-
 expose({
 	load: async function(_urlRoot) {
 		urlRoot = _urlRoot;
 		code = await loadDecompress('tex.wasm.gz');
-		coredump = new Uint8Array(await loadDecompress('core.dump.gz'), 0, pages * 65536);
+		coredump = new Uint8Array(await loadDecompress('core.dump.gz'), 0, library.pages * 65536);
 	},
 	texify: async function(input, dataset) {
-		// Load requested tex packages.
+		// Set up the tex input file.
 		let texPackages = dataset.texPackages ? JSON.parse(dataset.texPackages) : {};
-		await loadLibList(Object.keys(texPackages), "tex_packages");
-
-		// Load requested tikz libraries.
-		if (dataset.tikzLibraries) await loadLibList(dataset.tikzLibraries.split(","), "tikz_libs");
 
 		input = Object.entries(texPackages).reduce((usePackageString, thisPackage) => {
 			usePackageString += '\\usepackage' + (thisPackage[1] ? `[${thisPackage[1]}]` : '') +
@@ -75,25 +54,31 @@ expose({
 
 		library.writeFileSync("input.tex", Buffer.from(input));
 
-		let memory = new WebAssembly.Memory({ initial: pages, maximum: pages });
+		// Set up the tex web assembly.
+		let memory = new WebAssembly.Memory({ initial: library.pages, maximum: library.pages });
 
-		let buffer = new Uint8Array(memory.buffer, 0, pages * 65536);
+		let buffer = new Uint8Array(memory.buffer, 0, library.pages * 65536);
 		buffer.set(coredump.slice(0));
 
 		library.setMemory(memory.buffer);
 		library.setInput(" input.tex \n\\end\n");
+		library.setFileLoader(loadDecompress);
 
-		await WebAssembly.instantiate(code, {
+		let wasm = await WebAssembly.instantiate(code, {
 			library: library,
 			env: { memory: memory }
 		});
 
-		library.flushConsole();
+		// Execute the tex web assembly.
+		await library.executeAsync(wasm.instance.exports);
 
+		// Extract the generated dvi file.
 		let dvi = library.readFileSync("input.dvi").buffer;
 
+		// Clean up the library for the next run.
 		library.deleteEverything();
 
+		// Use dvi2html to convert the dvi to svg.
 		let html = "";
 		const page = new Writable({
 			write(chunk, encoding, callback) {
@@ -107,7 +92,7 @@ expose({
 			return;
 		}
 
-		let machine = await dvi2html(streamBuffer(), page);
+		await dvi2html(streamBuffer(), page);
 
 		return html;
 	}
