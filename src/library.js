@@ -76,7 +76,7 @@ export function readFileSync(filename)
 {
 	for (let f of files) {
 		if (f.filename == filename) {
-			return f.buffer.slice(0, f.position);
+			return f.content.slice(0, f.position);
 		}
 	}
 
@@ -128,11 +128,13 @@ function openSync(filename, mode)
 		}
 	}
 
-	files.push({ filename: filename,
+	files.push({
+		filename: filename,
 		position: 0,
+		position2: 0,
 		erstat: 0,
 		eoln: false,
-		buffer: buffer,
+		content: buffer,
 		descriptor: files.length
 	});
 
@@ -148,13 +150,13 @@ function writeSync(file, buffer, pointer, length)
 	if (pointer === undefined) pointer = 0;
 	if (length === undefined) length = buffer.length - pointer;
 
-	while (length > file.buffer.length - file.position) {
-		let b = new Uint8Array(1 + file.buffer.length * 2);
-		b.set(file.buffer);
-		file.buffer = b;
+	while (length > file.content.length - file.position) {
+		let b = new Uint8Array(1 + file.content.length * 2);
+		b.set(file.content);
+		file.content = b;
 	}
 
-	file.buffer.subarray(file.position).set(buffer.subarray(pointer, pointer+length));
+	file.content.subarray(file.position).set(buffer.subarray(pointer, pointer+length));
 	file.position += length;
 }
 
@@ -163,10 +165,10 @@ function readSync(file, buffer, pointer, length, seek)
 	if (pointer === undefined) pointer = 0;
 	if (length === undefined) length = buffer.length - pointer;
 
-	if (length > file.buffer.length - seek)
-		length = file.buffer.length - seek;
+	if (length > file.content.length - seek)
+		length = file.content.length - seek;
 
-	buffer.subarray(pointer).set(file.buffer.subarray(seek, seek+length));
+	buffer.subarray(pointer).set(file.content.subarray(seek, seek+length));
 
 	return length;
 }
@@ -236,7 +238,7 @@ export function getCurrentYear() {
 // print
 
 export function printString(descriptor, x) {
-	var file = (descriptor < 0) ? {stdout:true} : files[descriptor];
+	var file = (descriptor < 0) ? { stdout: true } : files[descriptor];
 	var length = new Uint8Array(memory, x, 1)[0];
 	var buffer = new Uint8Array(memory, x + 1, length);
 	var string = String.fromCharCode.apply(null, buffer);
@@ -250,7 +252,7 @@ export function printString(descriptor, x) {
 }
 
 export function printBoolean(descriptor, x) {
-	var file = (descriptor < 0) ? {stdout:true} : files[descriptor];
+	var file = (descriptor < 0) ? { stdout: true } : files[descriptor];
 
 	var result = x ? "TRUE" : "FALSE";
 
@@ -262,7 +264,7 @@ export function printBoolean(descriptor, x) {
 	writeSync(file, Buffer.from(result));
 }
 export function printChar(descriptor, x) {
-	var file = (descriptor < 0) ? {stdout:true} : files[descriptor];
+	var file = (descriptor < 0) ? { stdout: true } : files[descriptor];
 	if (file.stdout) {
 		writeToConsole(String.fromCharCode(x));
 		return;
@@ -274,7 +276,7 @@ export function printChar(descriptor, x) {
 }
 
 export function printInteger(descriptor, x) {
-	var file = (descriptor < 0) ? {stdout:true} : files[descriptor];
+	var file = (descriptor < 0) ? { stdout: true } : files[descriptor];
 	if (file.stdout) {
 		writeToConsole(x.toString());
 		return;
@@ -284,7 +286,7 @@ export function printInteger(descriptor, x) {
 }
 
 export function printFloat(descriptor, x) {
-	var file = (descriptor < 0) ? {stdout:true} : files[descriptor];
+	var file = (descriptor < 0) ? { stdout: true } : files[descriptor];
 	if (file.stdout) {
 		writeToConsole(x.toString());
 		return;
@@ -294,7 +296,7 @@ export function printFloat(descriptor, x) {
 }
 
 export function printNewline(descriptor, x) {
-	var file = (descriptor < 0) ? {stdout:true} : files[descriptor];
+	var file = (descriptor < 0) ? { stdout: true } : files[descriptor];
 
 	if (file.stdout) {
 		writeToConsole("\n");
@@ -332,8 +334,10 @@ export function reset(length, pointer) {
 			filename: "stdin",
 			stdin: true,
 			position: 0,
+			position2: 0,
 			erstat: 0,
-			eoln: false
+			eoln: false,
+			content: Buffer.from(inputBuffer)
 		});
 		return files.length - 1;
 	}
@@ -353,7 +357,8 @@ export function rewrite(length, pointer) {
 	}
 
 	if (filename == "TTY:") {
-		files.push({ filename: "stdout",
+		files.push({
+			filename: "stdout",
 			stdout: true,
 			erstat: 0,
 		});
@@ -387,6 +392,49 @@ export function eoln(descriptor) {
 
 	if (file.eoln) return 1;
 	else return 0;
+}
+
+export function inputln(descriptor, bypass_eoln, bufferp, firstp, lastp, max_buf_stackp, buf_size) {
+	var file = files[descriptor];
+	var last_nonblank = 0; // |last| with trailing blanks removed
+
+	var buffer = new Uint8Array(memory, bufferp, buf_size);
+	var first = new Uint32Array(memory, firstp, 4);
+	var last = new Uint32Array(memory, lastp, 4);
+	var max_buf_stack = new Uint32Array(memory, max_buf_stackp, 4);
+
+	// cf. Matthew 19:30
+	last[0] = first[0];
+
+	// Input the first character of the line into |f^|
+	if (bypass_eoln && !file.eof && file.eoln) {
+		file.position2 = file.position2 + 1;
+	}
+
+	let endOfLine = file.content.indexOf(10, file.position2);
+	if (endOfLine < 0) endOfLine = file.content.length;
+
+	if (file.position2 >= file.content.length) {
+		if (file.stdin) {
+			if (callback) callback();
+			tex_final_end();
+		}
+
+		file.eof = true;
+		return false;
+	} else {
+		buffer.subarray(first[0]).set(file.content.subarray(file.position2, endOfLine));
+
+		last[0] = first[0] + endOfLine - file.position2;
+
+		while (buffer[last[0] - 1] == 32)
+			last[0] = last[0] - 1;
+
+		file.position2 = endOfLine;
+		file.eoln = true;
+	}
+
+	return true;
 }
 
 export function get(descriptor, pointer, length) {
