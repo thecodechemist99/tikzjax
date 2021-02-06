@@ -47,6 +47,20 @@ async function processTikzScripts(scripts) {
 			let text = elt.childNodes[0].nodeValue;
 			let loader = elt.loader;
 
+			// Check for a saved svg again in case this script tag is a duplicate of another.
+			let savedSVG = await localForage.getItem(elt.md5hash);
+
+			if (savedSVG) {
+				let svg = document.createRange().createContextualFragment(savedSVG).firstChild;
+				loader.replaceWith(svg);
+
+				// Emit a bubbling event that the svg is ready.
+				const loadFinishedEvent = new Event('tikzjax-load-finished', { bubbles: true});
+				svg.dispatchEvent(loadFinishedEvent);
+
+				return;
+			}
+
 			let html = "";
 			try {
 				html = await texWorker.texify(text, Object.assign({}, elt.dataset));
