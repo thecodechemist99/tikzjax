@@ -46,11 +46,15 @@ expose({
 		}, "") +
 			(dataset.tikzLibraries ? `\\usetikzlibrary{${dataset.tikzLibraries}}` : '') +
 			(dataset.addToPreamble || '') +
-			'\\begin{document}\\begin{tikzpicture}' +
 			(dataset.tikzOptions ? `[${dataset.tikzOptions}]` : '') +
-			input + '\n\\end{tikzpicture}\\end{document}\n';
+			input;
 
-		if (dataset.showConsole) library.setShowConsole();
+		if (dataset.showConsole) {
+			library.setShowConsole();
+
+			console.log("TikZJax: Rendering input:");
+			console.log(input);
+		}
 
 		library.writeFileSync("input.tex", Buffer.from(input));
 
