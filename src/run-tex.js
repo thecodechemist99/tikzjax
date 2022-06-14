@@ -8,7 +8,6 @@ import { texFilesBase64 } from './../tex_files/texFilesBase64';
 
 var coredump;
 var code;
-var urlRoot;
 
 async function loadDecompress(file) {
 	const gzippedString = texFilesBase64[file];
@@ -26,8 +25,7 @@ async function loadDecompress(file) {
 }
 
 expose({
-	load: async function(_urlRoot) {
-		urlRoot = _urlRoot;
+	load: async function() {
 		code = await loadDecompress('tex.wasm.gz');
 		coredump = new Uint8Array(await loadDecompress('core.dump.gz'), 0, library.pages * 65536);
 	},

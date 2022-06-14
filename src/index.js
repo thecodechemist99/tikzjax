@@ -9,8 +9,6 @@ if (document.currentScript === undefined) {
 	document.currentScript = scripts[scripts.length - 1];
 }
 
-// Determine where this script was loaded from. We will use that to find the files to load.
-var url = new URL(document.currentScript.src);
 var processQueue = [];
 var observer = null;
 var texWorker;
@@ -125,7 +123,6 @@ async function processTikzScripts(scripts) {
 }
 
 async function initializeWorker() {
-	var urlRoot = url.href.replace(/\/tikzjax(\.min)?\.js$/, '');
 
 	// Set up the worker thread.
 	const tex = await spawn(new Worker(`${urlRoot}/run-tex.js`));
@@ -135,7 +132,7 @@ async function initializeWorker() {
 
 	// Load the assembly and core dump.
 	try {
-		await tex.load(urlRoot);
+		await tex.load();
 	} catch (err) {
 		console.log(err);
 	}
