@@ -2,6 +2,7 @@ import { Worker, spawn, Thread } from 'threads';
 import localForage from "localforage";
 import md5 from 'md5';
 import '../css/container.css';
+import workerCode from './../dist/run-tex-output.js';
 
 // document.currentScript polyfill
 if (document.currentScript === undefined) {
@@ -122,10 +123,29 @@ async function processTikzScripts(scripts) {
 	return currentProcessPromise;
 }
 
+function getWorkerFromString(code) {
+	window.URL = window.URL || window.webkitURL;
+
+	// "Server response", used in all examples
+
+	var blob;
+	try {
+		blob = new Blob([code], {type: 'application/javascript'});
+	} catch (e) { // Backwards-compatibility
+		window.BlobBuilder = window.BlobBuilder || window.WebKitBlobBuilder || window.MozBlobBuilder;
+		blob = new BlobBuilder();
+		blob.append(response);
+		blob = blob.getBlob();
+	}
+	var worker = new Worker(URL.createObjectURL(blob)); //, { type: "module" }
+
+	return worker;
+}
+
 async function initializeWorker() {
 
 	// Set up the worker thread.
-	const tex = await spawn(new Worker(`${urlRoot}/run-tex.js`));
+	const tex = await spawn(getWorkerFromString(workerCode));
 	Thread.events(tex).subscribe(e => {
 		if (e.type == "message" && typeof(e.data) === "string") console.log(e.data);
 	});

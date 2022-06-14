@@ -9,7 +9,7 @@
 		"install-fonts": "gulp download-fonts && gulp install-fonts && node encodeFonts.js",
 		"devbuild": "npm run gen-tex-files && npm run encode-tex-files && webpack --mode development",
 		"build": "npm run gen-tex-files && npm run encode-tex-files && webpack",
-		"postbuild": "npm run install-fonts"
+		"postbuild": "node cleanup.js && npm run install-fonts"
 	},
 	"author": "Jim Fowler",
 	"contributors": [

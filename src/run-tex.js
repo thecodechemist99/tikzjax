@@ -16,7 +16,6 @@ async function loadDecompress(file) {
 	try {
 		const unzippedBuffer = pako.ungzip(gzippedBuffer);
 
-		console.log("Loaded file", file);
 		return unzippedBuffer;
 
 	} catch (e) {
