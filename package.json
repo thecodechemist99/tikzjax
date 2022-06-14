@@ -5,10 +5,11 @@
 	"browser": "tikzjax.js",
 	"scripts": {
 		"gen-tex-files": "node genTexFiles.js",
+		"encode-tex-files": "node encodeTexFiles.js",
 		"install-fonts": "gulp download-fonts && gulp install-fonts",
-		"devbuild": "webpack --mode development",
-		"build": "webpack",
-		"postbuild": "npm run install-fonts && npm run gen-tex-files"
+		"devbuild": "npm run gen-tex-files && npm run encode-tex-files && webpack --mode development",
+		"build": "npm run gen-tex-files && npm run encode-tex-files && webpack",
+		"postbuild": "npm run install-fonts"
 	},
 	"author": "Jim Fowler",
 	"contributors": [

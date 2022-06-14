@@ -29,9 +29,7 @@ module.exports = (env, argv) => {
 		plugins: [
 			new CopyPlugin({
 				patterns: [
-					{ from: "./css/fonts.css", to: path.resolve(__dirname, 'dist') },
-					{ from: "./core.dump.gz", to: path.resolve(__dirname, 'dist'), noErrorOnMissing: true },
-					{ from: "./tex.wasm.gz", to: path.resolve(__dirname, 'dist'), noErrorOnMissing: true }
+					{ from: "./css/fonts.css", to: path.resolve(__dirname, 'dist') }
 				]
 			}),
 			new webpack.ProvidePlugin({

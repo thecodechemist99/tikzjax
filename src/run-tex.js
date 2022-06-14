@@ -4,27 +4,23 @@ import pako from 'pako';
 import { Buffer } from 'buffer';
 import { Writable } from 'stream-browserify';
 import * as library from './library';
+import { texFilesBase64 } from './../tex_files/texFilesBase64';
 
 var coredump;
 var code;
 var urlRoot;
 
 async function loadDecompress(file) {
-	let response = await fetch(`${urlRoot}/${file}`);
-	if (response.ok) {
-		const reader = response.body.getReader();
-		const inf = new pako.Inflate();
+	const gzippedString = texFilesBase64[file];
+    const gzippedBuffer = Buffer.from(gzippedString, 'base64');
 
-		while (true) {
-			const {done, value} = await reader.read();
-			if (done) break;
-			inf.push(value);
-		}
-		reader.releaseLock();
-		if (inf.err) { throw new Error(inf.err); }
+	try {
+		const unzippedBuffer = pako.ungzip(gzippedBuffer);
 
-		return inf.result;
-	} else {
+		console.log("Loaded file", file);
+		return unzippedBuffer;
+
+	} catch (e) {
 		throw `Unable to load ${file}.  File not available.`;
 	}
 }

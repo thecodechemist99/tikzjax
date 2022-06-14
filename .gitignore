@@ -3,3 +3,4 @@ core.dump.gz
 tex.wasm.gz
 dist
 node_modules
+tex_files

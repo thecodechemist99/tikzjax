@@ -4,7 +4,7 @@ var spawnSync = require('child_process').spawnSync;
 
 const inputFile = "tex_files.json";
 
-fs.mkdirSync('./dist/tex_files', { recursive: true });
+fs.mkdirSync('./tex_files', { recursive: true });
 
 var processedFiles = [];
 
@@ -23,5 +23,5 @@ for (const texFile of files) {
 	processedFiles.push(texFile);
 
 	console.log(`\tResolved ${texFile} to ${sysFile}`);
-	fs.writeFileSync('dist/tex_files/' + texFile + ".gz", pako.gzip(fs.readFileSync(sysFile, 'utf8')));
+	fs.writeFileSync('tex_files/' + texFile + ".gz", pako.gzip(fs.readFileSync(sysFile, 'utf8')));
 }
