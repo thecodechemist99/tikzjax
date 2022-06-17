@@ -1,7 +1,6 @@
 import { Worker, spawn, Thread } from 'threads';
 import localForage from "localforage";
 import md5 from 'md5';
-import '../css/container.css';
 import workerCode from './../dist/run-tex-output.js';
 
 // document.currentScript polyfill
