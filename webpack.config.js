@@ -47,6 +47,14 @@ module.exports = (env, argv) => {
 			path: path.resolve(__dirname, 'dist'),
 			filename: '[name].js'
 		},
+		module: {
+			rules: [
+				{
+					test: /\.gz/,
+					type: 'asset/inline',
+				}
+			]
+		},
 		performance: {
 			hints: false
 		},
