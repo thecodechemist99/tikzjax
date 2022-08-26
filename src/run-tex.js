@@ -10,8 +10,9 @@ var coredump;
 var code;
 
 async function loadDecompress(file) {
+	const prefix = "data:application/gzip;base64,";
 	const gzippedString = texFilesBase64[file];
-    const gzippedBuffer = Buffer.from(gzippedString, 'base64');
+    const gzippedBuffer = Buffer.from(gzippedString.substring(prefix.length), 'base64');
 
 	try {
 		const unzippedBuffer = pako.ungzip(gzippedBuffer);
