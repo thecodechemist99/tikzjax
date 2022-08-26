@@ -79,6 +79,12 @@ async function processTikzScripts(scripts) {
 				}
 			}
 
+
+			// Patch: Fixes symbols stored in the SOFT HYPHEN character (e.g. \Omega, \otimes) not being rendered
+			// Replaces soft hyphens with ¬
+			html = html.replaceAll("&#173;", "&#172;");
+	
+
 			let svg = document.createRange().createContextualFragment(html).firstChild;
 			loader.replaceWith(svg);
 
