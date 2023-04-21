@@ -1,6 +1,6 @@
 # README for `benrbray/tikzjax`
 
-My fork is based on the `ww-modifications` branch of [`artisticat1/tikzjax`](https://github.com/artisticat1/tikzjax/commit/8f526f5e1b708428fe9ecb2e2afecf1deb81829e), which itself is a fork of [`drgrice1/tikzjax`](https://github.com/drgrice1/tikzjax/tree/ww-modifications), which itself is a fork of [`kisonecat/tikzjax`](https://github.com/kisonecat/tikzjax).  To `artisticat1`'s fork, I have added:
+My fork is based on the `output-single-file` branch of [`artisticat1/tikzjax`](https://github.com/artisticat1/tikzjax/tree/ba892f23a2d280d018681a4f88b39f5a8648c7c7), which itself is a fork of [`drgrice1/tikzjax`](https://github.com/drgrice1/tikzjax/tree/ww-modifications), which itself is a fork of [`kisonecat/tikzjax`](https://github.com/kisonecat/tikzjax).  To `artisticat1`'s fork, I have added:
 
 * [x] fixed build issues with changes to `package.json` and `webpack.config.js` 
 * [x] a `Dockerfile` and `docker-compose.yml` which allow for reproducible builds of `tikzjax` via a Docker image that installs all required dependencies and runs the build scripts for both `tikzjax` and `web2js`
