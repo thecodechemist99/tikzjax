@@ -15,6 +15,7 @@ In the future, I hope to make the following improvements:
 * [ ] add a way to override the default loading spinner
 * [ ] rather than printing TeX rendering errors to the console, allow the user to pass in a custom handler for console output.  This would make it possible to display any TeX errors on the page itself, rather than just in the console.
 * [ ] simplify the build process and update dependencies
+* [ ] release my fork as an `npm` package for easier integration with other projects
 
 ## Use TikzJax
 
