@@ -30,7 +30,8 @@ module.exports = (env, argv) => {
 		},
 		plugins: [
 			new webpack.ProvidePlugin({
-				process: 'process/browser'
+				process: 'process/browser',
+        Buffer: ['buffer', 'Buffer']
 			})
 		],
 		dependencies: ["run-tex"]
@@ -60,7 +61,8 @@ module.exports = (env, argv) => {
 		},
 		plugins: [
 			new webpack.ProvidePlugin({
-				process: 'process/browser'
+				process: 'process/browser',
+        Buffer: ['buffer', 'Buffer']
 			})
 		]
 	};

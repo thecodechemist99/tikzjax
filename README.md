@@ -1,4 +1,86 @@
-# TikZJax
+# README for `benrbray/tikzjax`
+
+My fork is based on the `ww-modifications` branch of [`artisticat1/tikzjax`](https://github.com/artisticat1/tikzjax/commit/8f526f5e1b708428fe9ecb2e2afecf1deb81829e), which itself is a fork of [`drgrice1/tikzjax`](https://github.com/drgrice1/tikzjax/tree/ww-modifications), which itself is a fork of [`kisonecat/tikzjax`](https://github.com/kisonecat/tikzjax).  To `artisticat1`'s fork, I have added:
+
+* [x] fixed build issues with changes to `package.json` and `webpack.config.js` 
+* [x] a `Dockerfile` and `docker-compose.yml` which allow for reproducible builds of `tikzjax` via a Docker image that installs all required dependencies and runs the build scripts for both `tikzjax` and `web2js`
+* [x] a `build_tikzjax.sh` which starts the Docker container and extracts the resulting output files
+
+In the future, I hope to make the following improvements:
+
+* [ ] include some basic basic symbols & packages which are currently missing, for example `\ulcorner` and `\lrcorner` for commutative diagrams
+* [ ] make it easier to include custom `*.sty` files, such as `quiver.sty` from [q.uiver.app](https://q.uiver.app/)
+* [ ] add a way to disable the automatic detection of `<script type="tikz">` elements, and instead manually invoke the `tikzjax` renderer, for more control
+* [ ] add a way to disable caching of rendered tikzjax elements, for development purposes
+* [ ] add a way to override the default loading spinner
+* [ ] rather than printing TeX rendering errors to the console, allow the user to pass in a custom handler for console output.  This would make it possible to display any TeX errors on the page itself, rather than just in the console.
+* [ ] simplify the build process and update dependencies
+
+## Use TikzJax
+
+The `output` folder contains all the files you need to use TikzJax:
+
+* `output/tikzjax.js`
+* `output/fonts.css`
+
+Simply include these on your page, and any `<script type="text/tikz">` element will be automatically detect and rendered with `tikzjax`.  
+
+```html
+<script type="text/tikz">
+\begin{document}
+  \begin{tikzpicture}[domain=0:4]
+    \draw[very thin,color=gray] (-0.1,-1.1) grid (3.9,3.9);
+    \draw[->] (-0.2,0) -- (4.2,0) node[right] {$x$};
+    \draw[->] (0,-1.2) -- (0,4.2) node[above] {$f(x)$};
+    \draw[color=red]    plot (\x,\x)             node[right] {$f(x) =x$};
+    \draw[color=blue]   plot (\x,{sin(\x r)})    node[right] {$f(x) = \sin x$};
+    \draw[color=orange] plot (\x,{0.05*exp(\x)}) node[right] {$f(x) = \frac{1}{20} \mathrm e^x$};
+  \end{tikzpicture}
+\end{document}
+</script>
+```
+
+For more examples, see the (`artisticat1/obsidian-tikzjax`](https://github.com/artisticat1/obsidian-tikzjax) repository.
+
+## Build TikzJax
+
+In the root folder, simply run `bash build_tikzjax.sh`, which takes the following steps:
+
+1. Re-builds the Docker image, installing all necessary dependencies, and running the build scripts for both `web2js` and `tikzjax`.
+2. Starts the Docker container and extracts the `tikzjax.js` and `fonts.css` files produced by `tikzjax`. 
+3. Stops the container.
+
+After running the script, check `./output` for the output files.
+
+## Manual Build
+
+To rebuild the image and run a new container in detached mode:
+
+```bash
+$ docker compose up --build -d
+```
+
+In the container, the output of `tikzjax` can be found under `/code/tikzjax/dist`.  To copy it to your local machine, run:
+
+```bash
+$ mkdir -p output
+$ docker compose cp develop:/code/tikzjax/dist/fonts.css ./output
+$ docker compose cp develop:/code/tikzjax/dist/tikzjax.js ./output
+```
+
+Or, if you instead want to open a new shell inside the container:
+
+```bash
+$ docker compose exec develop bash
+```
+
+This is useful for debugging any issues with the build process.
+
+## Development Tips
+
+* If you prefer to develop locally, rather than through Docker, you can use the `Dockerfile` as a guide to install the required dependencies.
+
+# README for `aristicat1/tikzjax`
 
 TikZJax converts `<script>` tags (containing TikZ code) into SVGs.
 
