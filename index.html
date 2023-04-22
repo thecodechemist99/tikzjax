@@ -8,33 +8,33 @@
 <body>
 
 <h1>tikz-cd</h1>
-<script type="text/tikz">%
+<script type="text/tikz" data-show-console="true">%
+\usepackage{amssymb}
+\usepackage{quiver}
 \usepackage{tikz-cd}
+\usetikzlibrary{decorations.pathmorphing}
 \begin{document}
+% https://q.uiver.app/?q=WzAsNyxbMSwxLCJhIl0sWzMsMSwiYiJdLFsxLDIsImMiXSxbMywyLCJjIl0sWzEsMCwiRiJdLFswLDAsIlxccHJvZCJdLFswLDEsIlxcc3VtIl0sWzAsMywiIiwwLHsic3R5bGUiOnsibmFtZSI6ImNvcm5lciJ9fV0sWzAsMV0sWzAsMiwiIiwyLHsic3R5bGUiOnsiYm9keSI6eyJuYW1lIjoiZG90dGVkIn19fV0sWzIsMywiIiwyLHsic3R5bGUiOnsiYm9keSI6eyJuYW1lIjoiZGFzaGVkIn19fV0sWzEsMywiIiwyLHsic3R5bGUiOnsiYm9keSI6eyJuYW1lIjoic3F1aWdnbHkifX19XSxbNCwwLCIiLDMseyJzdHlsZSI6eyJ0YWlsIjp7Im5hbWUiOiJob29rIiwic2lkZSI6InRvcCJ9LCJib2R5Ijp7Im5hbWUiOiJiYXJyZWQifSwiaGVhZCI6eyJuYW1lIjoiaGFycG9vbiIsInNpZGUiOiJ0b3AifX19XSxbNSw2XSxbOCwxMCwiIiwyLHsic2hvcnRlbiI6eyJzb3VyY2UiOjIwLCJ0YXJnZXQiOjIwfX1dLFsxMywxMiwiIiwzLHsic2hvcnRlbiI6eyJzb3VyY2UiOjIwLCJ0YXJnZXQiOjIwfX1dLFsxNSwxNCwiIiwzLHsiY3VydmUiOjMsImxldmVsIjoxLCJzdHlsZSI6eyJib2R5Ijp7Im5hbWUiOiJkYXNoZWQifX19XV0=
 \begin{tikzcd}
-    T
-    \arrow[drr, bend left, "x"]
-    \arrow[ddr, bend right, "y"]
-    \arrow[dr, dotted, "{(x,y)}" description] & & \\
-    K & X \times_Z Y \arrow[r, "p"] \arrow[d, "q"]
-    & X \arrow[d, "f"] \\
-    & Y \arrow[r, "g"]
-    & Z
-\end{tikzcd}
-\quad \quad
-\begin{tikzcd}[row sep=2.5em]
-A' \arrow[rr,"f'"] \arrow[dr,swap,"a"] \arrow[dd,swap,"g'"] &&
-  B' \arrow[dd,swap,"h'" near start] \arrow[dr,"b"] \\
-& A \arrow[rr,crossing over,"f" near start] &&
-  B \arrow[dd,"h"] \\
-C' \arrow[rr,"k'" near end] \arrow[dr,swap,"c"] && D' \arrow[dr,swap,"d"] \\
-& C \arrow[rr,"k"] \arrow[uu,<-,crossing over,"g" near end]&& D
+	\prod & F \\
+	\sum & a && b \\
+	& c && c
+	\arrow["\lrcorner"{anchor=center, pos=0.125}, draw=none, from=2-2, to=3-4]
+	\arrow[""{name=0, anchor=center, inner sep=0}, from=2-2, to=2-4]
+	\arrow[dotted, from=2-2, to=3-2]
+	\arrow[""{name=1, anchor=center, inner sep=0}, dashed, from=3-2, to=3-4]
+	\arrow[squiggly, from=2-4, to=3-4]
+	\arrow[""{name=2, anchor=center, inner sep=0}, "\shortmid"{marking}, hook, harpoon, from=1-2, to=2-2]
+	\arrow[""{name=3, anchor=center, inner sep=0}, from=1-1, to=2-1]
+	\arrow[""{name=4, anchor=center, inner sep=0}, shorten <=4pt, shorten >=4pt, Rightarrow, from=0, to=1]
+	\arrow[""{name=5, anchor=center, inner sep=0}, shorten <=6pt, shorten >=6pt, Rightarrow, from=3, to=2]
+	\arrow[curve={height=18pt}, dashed, from=5, to=4]
 \end{tikzcd}
 \end{document}
 </script>
 
 <h1>pgfplots</h1>
-<script type="text/tikz">%
+<script type="text/tikz" data-show-console="true">%
 \usepackage{pgfplots}
 \pgfplotsset{compat=1.16}
 \begin{document}
@@ -53,7 +53,7 @@ domain=-3:3
 </script>
 
 <h1>tikzpicture</h1>
-<script type="text/tikz">%
+<script type="text/tikz" data-show-console="true">%
 \begin{document}
   \begin{tikzpicture}[domain=0:4]
     \draw[very thin,color=gray] (-0.1,-1.1) grid (3.9,3.9);
@@ -67,7 +67,7 @@ domain=-3:3
 </script>
 
 <h1>circuitikz</h1>
-<script type="text/tikz">%
+<script type="text/tikz" data-show-console="true">%
 \usepackage{circuitikz}
 \begin{document}
 \begin{circuitikz}[american, voltage shift=0.5]
@@ -83,7 +83,7 @@ to[R=$R_2$, i>_=$i_2$]
 </script>
 
 <h1>pgfplots</h1>
-<script type="text/tikz">%
+<script type="text/tikz" data-show-console="true">%
 \usepackage{pgfplots}
 \pgfplotsset{compat=1.16}
 \begin{document}
@@ -101,7 +101,7 @@ to[R=$R_2$, i>_=$i_2$]
 </script>
 
 <h1>chemfig</h1>
-<script type="text/tikz">%
+<script type="text/tikz" data-show-console="true">%
 \usepackage{chemfig}
 \begin{document}
 \chemfig{[:-90]HN(-[::-45](-[::-45]R)=[::+45]O)>[::+45]*4(-(=O)-N*5(-(<:(=[::-60]O)-[::+60]OH)-(<[::+0])(<:[::-108])-S>)--)}
@@ -109,7 +109,7 @@ to[R=$R_2$, i>_=$i_2$]
 </script>
 
 <h1>chemfig</h1>
-<script type="text/tikz">%
+<script type="text/tikz" data-show-console="true">%
 \usepackage{chemfig}
 \begin{document}
 \definesubmol\fragment1{
