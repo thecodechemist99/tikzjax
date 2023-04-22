@@ -1,6 +1,6 @@
 import { dvi2html } from 'dvi2html';
 import { expose } from "threads/worker";
-import pako from 'pako';
+import * as pako from 'pako';
 import { Buffer } from 'buffer';
 import { Writable } from 'stream-browserify';
 import * as library from './library';

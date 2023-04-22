@@ -1,7 +1,10 @@
 import { Worker, spawn, Thread } from 'threads';
 import * as localForage from "localforage";
 import * as md5 from 'md5';
-import * as workerCode from './run-tex';
+
+// @ts-ignore (wepack creates `run-tex-output.js` during the
+// build process, inlines it here as a string value)
+import workerCode from './../dist/run-tex-output.js';
 
 // document.currentScript polyfill
 if (document.currentScript === undefined) {
@@ -132,7 +135,7 @@ async function processTikzScripts(scripts) {
 	return currentProcessPromise;
 }
 
-function getWorkerFromString(code) {
+function getWorkerFromString(code: string) {
 	window.URL = window.URL || window.webkitURL;
 
 	var blob = new Blob([code], {type: 'application/javascript'});
@@ -144,7 +147,8 @@ function getWorkerFromString(code) {
 async function initializeWorker() {
 
 	// Set up the worker thread.
-	const tex = await spawn(getWorkerFromString(workerCode));
+	// (note: workerCode is a string containing the compiled source of run-tex.ts, inlined by webpack)
+	const tex = await spawn(getWorkerFromString(workerCode as string));
 	Thread.events(tex).subscribe(e => {
 		if (e.type == "message" && typeof(e.data) === "string") console.log(e.data);
 	});

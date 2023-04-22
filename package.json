@@ -29,6 +29,7 @@
 	},
 	"devDependencies": {
 		"@types/md5": "^2.3.2",
+		"@types/pako": "^2.0.0",
 		"copy-webpack-plugin": "^7.0.0",
 		"css-loader": "^5.0.1",
 		"gulp": "^4.0.2",
