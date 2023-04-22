@@ -1,10 +1,52 @@
 import { tfmData } from 'dvi2html';
 import { Buffer } from 'buffer';
 
+////////////////////////////////////////////////////////////
+
+type BaseFile = {
+	eoln?: boolean,
+	eof?: boolean,
+	descriptor?: number,
+	stdin?: boolean,
+	stdout?: boolean,
+	position?: number,
+	position2?: number,
+};
+
+type FileStdIn = BaseFile & {
+	filename: "stdin"
+	stdin: true,
+	erstat: 0,
+	content?: Buffer
+}
+
+type FileStdOut = BaseFile & {
+	filename: "stdout"
+	stdout: true,
+	erstat: 0
+}
+
+type FileRegular = BaseFile & {
+	filename: string,
+	erstat: 0,
+	content: Uint8Array|Buffer
+}
+
+type FileNoError = FileStdIn | FileStdOut | FileRegular;
+
+type FileWithError = {
+	filename: string,
+	erstat: 1
+}
+
+type File = FileNoError | FileWithError;
+
+////////////////////////////////////////////////////////////
+
 var filesystem = {};
-var files = [];
-var showConsole = false;
-var consoleBuffer = "";
+var files: File[] = [];
+var showConsole: boolean = false;
+var consoleBuffer: string = "";
 var memory: ArrayBufferLike = null;
 var inputBuffer = null;
 var callback = null;
@@ -67,24 +109,24 @@ export function deleteEverything() {
 	sleeping = false;
 }
 
-export function writeFileSync(filename, buffer)
+export function writeFileSync(filename: string, buffer: Buffer)
 {
 	filesystem[filename] = buffer;
 }
 
-export function readFileSync(filename)
+export function readFileSync(filename: string)
 {
 	for (let f of files) {
-		if (f.filename == filename) {
-			return f.content.slice(0, f.position);
+		let file = f as FileRegular;
+		if (file.filename == filename) {
+			return file.content.slice(0, file.position);
 		}
 	}
 
 	throw Error(`Could not find file ${filename}`);
 }
 
-function openSync(filename, mode)
-{
+function openSync(filename: string, mode: "r"|"w"): number {
 	let initialSleepState = sleeping;
 	if (sleeping) {
 		stopRewind();
@@ -145,8 +187,7 @@ function closeSync(fd) {
 	// ignore this.
 }
 
-function writeSync(file, buffer, pointer?: number, length?: number)
-{
+function writeSync(file, buffer, pointer?: number, length?: number): void {
 	if (pointer === undefined) pointer = 0;
 	if (length === undefined) length = buffer.length - pointer;
 
@@ -160,8 +201,7 @@ function writeSync(file, buffer, pointer?: number, length?: number)
 	file.position += length;
 }
 
-function readSync(file, buffer, pointer, length, seek)
-{
+function readSync(file, buffer: Uint8Array, pointer: number|undefined, length: number|undefined, seek: number): number {
 	if (pointer === undefined) pointer = 0;
 	if (length === undefined) length = buffer.length - pointer;
 
@@ -238,7 +278,7 @@ export function getCurrentYear() {
 // print
 
 export function printString(descriptor: number, x: number) {
-	var file = (descriptor < 0) ? { stdout: true } : files[descriptor];
+	var file = (descriptor < 0) ? { stdout: true } : files[descriptor] as FileNoError;
 	var length = new Uint8Array(memory, x, 1)[0];
 	var buffer = new Uint8Array(memory, x + 1, length);
 	var string = String.fromCharCode.apply(null, buffer);
@@ -251,8 +291,8 @@ export function printString(descriptor: number, x: number) {
 	writeSync(file, Buffer.from(string));
 }
 
-export function printBoolean(descriptor, x) {
-	var file = (descriptor < 0) ? { stdout: true } : files[descriptor];
+export function printBoolean(descriptor: number, x: unknown) {
+	var file = (descriptor < 0) ? { stdout: true } : files[descriptor] as FileNoError;
 
 	var result = x ? "TRUE" : "FALSE";
 
@@ -263,8 +303,9 @@ export function printBoolean(descriptor, x) {
 
 	writeSync(file, Buffer.from(result));
 }
-export function printChar(descriptor, x) {
-	var file = (descriptor < 0) ? { stdout: true } : files[descriptor];
+
+export function printChar(descriptor: number, x: number) {
+	var file = (descriptor < 0) ? { stdout: true } : files[descriptor] as FileNoError;
 	if (file.stdout) {
 		writeToConsole(String.fromCharCode(x));
 		return;
@@ -275,8 +316,8 @@ export function printChar(descriptor, x) {
 	writeSync(file, b);
 }
 
-export function printInteger(descriptor, x) {
-	var file = (descriptor < 0) ? { stdout: true } : files[descriptor];
+export function printInteger(descriptor: number, x: number) {
+	var file = (descriptor < 0) ? { stdout: true } : files[descriptor] as FileNoError;
 	if (file.stdout) {
 		writeToConsole(x.toString());
 		return;
@@ -285,8 +326,8 @@ export function printInteger(descriptor, x) {
 	writeSync(file, Buffer.from(x.toString()));
 }
 
-export function printFloat(descriptor, x) {
-	var file = (descriptor < 0) ? { stdout: true } : files[descriptor];
+export function printFloat(descriptor: number, x: number) {
+	var file = (descriptor < 0) ? { stdout: true } : files[descriptor] as FileNoError;
 	if (file.stdout) {
 		writeToConsole(x.toString());
 		return;
@@ -295,8 +336,8 @@ export function printFloat(descriptor, x) {
 	writeSync(file, Buffer.from(x.toString()));
 }
 
-export function printNewline(descriptor, x) {
-	var file = (descriptor < 0) ? { stdout: true } : files[descriptor];
+export function printNewline(descriptor: number, x: number) {
+	var file = (descriptor < 0) ? { stdout: true } : files[descriptor] as FileNoError;
 
 	if (file.stdout) {
 		writeToConsole("\n");
@@ -368,34 +409,42 @@ export function rewrite(length, pointer) {
 	return openSync(filename, 'w');
 }
 
-export function close(descriptor) {
-	var file = files[descriptor];
+export function close(descriptor: number) {
+	var file = files[descriptor] as FileNoError;
 
 	if (file.descriptor)
 		closeSync(file.descriptor);
 }
 
-export function eof(descriptor) {
-	var file = files[descriptor];
+export function eof(descriptor: number) {
+	var file = files[descriptor] as FileNoError;
 
 	if (file.eof) return 1;
 	else return 0;
 }
 
-export function erstat(descriptor) {
-	var file = files[descriptor];
+export function erstat(descriptor: number) {
+	var file = files[descriptor] as FileNoError;
 	return file.erstat;
 }
 
-export function eoln(descriptor) {
-	var file = files[descriptor];
+export function eoln(descriptor: number) {
+	var file = files[descriptor] as FileNoError;
 
 	if (file.eoln) return 1;
 	else return 0;
 }
 
-export function inputln(descriptor, bypass_eoln, bufferp, firstp, lastp, max_buf_stackp, buf_size) {
-	var file = files[descriptor];
+export function inputln(
+	descriptor: number,
+	bypass_eoln: boolean,
+	bufferp?: number,
+	firstp?: number,
+	lastp?: number,
+	max_buf_stackp?: number,
+	buf_size?: number
+) {
+	var file = files[descriptor] as FileRegular;
 	var last_nonblank = 0; // |last| with trailing blanks removed
 
 	var buffer = new Uint8Array(memory, bufferp, buf_size);
@@ -437,8 +486,8 @@ export function inputln(descriptor, bypass_eoln, bufferp, firstp, lastp, max_buf
 	return true;
 }
 
-export function get(descriptor, pointer, length) {
-	var file = files[descriptor];
+export function get(descriptor: number, pointer, length) {
+	var file = files[descriptor] as FileNoError;
 
 	var buffer = new Uint8Array(memory);
 

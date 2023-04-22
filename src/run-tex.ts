@@ -9,7 +9,7 @@ import { texFilesBase64 } from './../tex_files/texFilesBase64';
 var coredump;
 var code;
 
-async function loadDecompress(file) {
+async function loadDecompress(file: keyof typeof texFilesBase64) {
 	const prefix = "data:application/gzip;base64,";
 	const gzippedString = texFilesBase64[file];
     const gzippedBuffer = Buffer.from(gzippedString.substring(prefix.length), 'base64');
@@ -29,7 +29,7 @@ expose({
 		code = await loadDecompress('tex.wasm.gz');
 		coredump = new Uint8Array(await loadDecompress('core.dump.gz'), 0, library.pages * 65536);
 	},
-	texify: async function(input, dataset) {
+	texify: async function(input: string, dataset: DOMStringMap) {
 		// Set up the tex input file.
 		let texPackages = dataset.texPackages ? JSON.parse(dataset.texPackages) : {};
 
