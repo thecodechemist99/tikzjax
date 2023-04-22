@@ -28,6 +28,7 @@
 		"threads": "^1.6.3"
 	},
 	"devDependencies": {
+		"@types/md5": "^2.3.2",
 		"copy-webpack-plugin": "^7.0.0",
 		"css-loader": "^5.0.1",
 		"gulp": "^4.0.2",
@@ -35,6 +36,8 @@
 		"gulp-download2": "^1.0.2",
 		"gulp-filter": "^6.0.0",
 		"style-loader": "^2.0.0",
+		"ts-loader": "^9.4.2",
+		"typescript": "^5.0.4",
 		"webpack": "^5.11.1",
 		"webpack-cli": "^4.3.0"
 	}
