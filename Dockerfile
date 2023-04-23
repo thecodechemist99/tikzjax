@@ -76,4 +76,5 @@ RUN cp /code/web2js/core.dump.gz /code/tikzjax
 # build tikzjax
 WORKDIR /code/tikzjax
 RUN npm install
+RUN npm run gen-tex-files
 RUN npm run build
