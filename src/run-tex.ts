@@ -6,19 +6,19 @@ import { Writable } from 'stream-browserify';
 import * as library from './library';
 import { texFilesBase64 } from './../tex_files/texFilesBase64';
 
-var coredump;
-var code;
+////////////////////////////////////////////////////////////////////////////////
 
-async function loadDecompress(file: keyof typeof texFilesBase64) {
+var coredump: Uint8Array;
+var code: Uint8Array;
+
+async function loadDecompress(file: keyof typeof texFilesBase64): Promise<Uint8Array> {
 	const prefix = "data:application/gzip;base64,";
 	const gzippedString = texFilesBase64[file];
     const gzippedBuffer = Buffer.from(gzippedString.substring(prefix.length), 'base64');
 
 	try {
 		const unzippedBuffer = pako.ungzip(gzippedBuffer);
-
 		return unzippedBuffer;
-
 	} catch (e) {
 		throw `Unable to load ${file}.  File not available.`;
 	}

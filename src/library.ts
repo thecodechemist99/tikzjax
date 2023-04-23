@@ -7,8 +7,6 @@ type BaseFile = {
 	eoln?: boolean,
 	eof?: boolean,
 	descriptor?: number,
-	stdin?: boolean,
-	stdout?: boolean,
 	position?: number,
 	position2?: number,
 };
@@ -41,27 +39,48 @@ type FileWithError = {
 
 type File = FileNoError | FileWithError;
 
+function fileIsStdIn(file: FileNoError | { stdin: boolean }): file is FileStdIn {
+	if((file as any).stdin) { return true;  }
+	else                    { return false; }
+}
+
+function fileIsStdOut(file: FileNoError | { stdout: boolean }): file is FileStdOut {
+	if((file as any).stdout) { return true;  }
+	else                     { return false; }
+}
+
+
+/* ------------------------------------------------------ */
+
+type WasmExports = WebAssembly.Exports & {
+	main(): unknown,
+	asyncify_start_unwind(x: number): unknown
+	asyncify_stop_unwind(): unknown
+	asyncify_start_rewind(x: number): unknown
+	asyncify_stop_rewind(): unknown
+}
+
 ////////////////////////////////////////////////////////////
 
-var filesystem = {};
-var files: File[] = [];
-var showConsole: boolean = false;
-var consoleBuffer: string = "";
-var memory: ArrayBufferLike = null;
-var inputBuffer = null;
-var callback = null;
+var filesystem               = {};
+var files: File[]            = [];
+var showConsole: boolean     = false;
+var consoleBuffer: string    = "";
+var memory: ArrayBufferLike  = null;
+var inputBuffer: string|null = null;
+var callback                 = null;
+let wasmExports: WasmExports = null;
+let view: Int32Array|null    = null;
+var finished                 = null;
 
-let wasmExports = null;
-let view = null;
-let fileLoader = null;
-var finished = null;
+let fileLoader: (name:string) => Promise<Uint8Array> = null;
 
-export var pages = 1100;
+export var pages: number = 1100;
 
-let DATA_ADDR = (pages - 100) * 1024 * 64;
-let END_ADDR = pages * 1024 * 64;
-let windingDepth = 0;
-let sleeping = false;
+let DATA_ADDR: number    = (pages - 100) * 1024 * 64;
+let END_ADDR: number     = pages * 1024 * 64;
+let windingDepth: number = 0;
+let sleeping: boolean    = false;
 
 function startUnwind() {
 	if (view) {
@@ -187,7 +206,7 @@ function closeSync(fd) {
 	// ignore this.
 }
 
-function writeSync(file, buffer, pointer?: number, length?: number): void {
+function writeSync(file: FileRegular, buffer, pointer?: number, length?: number): void {
 	if (pointer === undefined) pointer = 0;
 	if (length === undefined) length = buffer.length - pointer;
 
@@ -201,7 +220,7 @@ function writeSync(file, buffer, pointer?: number, length?: number): void {
 	file.position += length;
 }
 
-function readSync(file, buffer: Uint8Array, pointer: number|undefined, length: number|undefined, seek: number): number {
+function readSync(file: FileRegular, buffer: Uint8Array, pointer: number|undefined, length: number|undefined, seek: number): number {
 	if (pointer === undefined) pointer = 0;
 	if (length === undefined) length = buffer.length - pointer;
 
@@ -236,17 +255,17 @@ export function setMemory(m: ArrayBufferLike) {
 	view = new Int32Array(m);
 }
 
-export function setInput(input, cb?: unknown) {
+export function setInput(input: string, cb?: unknown) {
 	inputBuffer = input;
 	if (cb) callback = cb;
 }
 
-export function setFileLoader(c) {
+export function setFileLoader(c: (name:string) => Promise<Uint8Array>) {
 	fileLoader = c;
 }
 
-export async function executeAsync(_wasmExports) {
-	wasmExports = _wasmExports;
+export async function executeAsync(_wasmExports: WebAssembly.Exports) {
+	wasmExports = _wasmExports as WasmExports;
 
 	finished = deferredPromise();
 
@@ -283,12 +302,12 @@ export function printString(descriptor: number, x: number) {
 	var buffer = new Uint8Array(memory, x + 1, length);
 	var string = String.fromCharCode.apply(null, buffer);
 
-	if (file.stdout) {
+	if (fileIsStdOut(file)) {
 		writeToConsole(string);
 		return;
 	}
 
-	writeSync(file, Buffer.from(string));
+	writeSync(file as FileRegular, Buffer.from(string));
 }
 
 export function printBoolean(descriptor: number, x: unknown) {
@@ -296,55 +315,55 @@ export function printBoolean(descriptor: number, x: unknown) {
 
 	var result = x ? "TRUE" : "FALSE";
 
-	if (file.stdout) {
+	if (fileIsStdOut(file)) {
 		writeToConsole(result);
 		return;
 	}
 
-	writeSync(file, Buffer.from(result));
+	writeSync(file as FileRegular, Buffer.from(result));
 }
 
 export function printChar(descriptor: number, x: number) {
 	var file = (descriptor < 0) ? { stdout: true } : files[descriptor] as FileNoError;
-	if (file.stdout) {
+	if (fileIsStdOut(file)) {
 		writeToConsole(String.fromCharCode(x));
 		return;
 	}
 
 	var b = Buffer.alloc(1);
 	b[0] = x;
-	writeSync(file, b);
+	writeSync(file as FileRegular, b);
 }
 
 export function printInteger(descriptor: number, x: number) {
-	var file = (descriptor < 0) ? { stdout: true } : files[descriptor] as FileNoError;
-	if (file.stdout) {
+	var file = (descriptor < 0) ? { stdout: true } : files[descriptor] as FileRegular;
+	if (fileIsStdOut(file)) {
 		writeToConsole(x.toString());
 		return;
 	}
 
-	writeSync(file, Buffer.from(x.toString()));
+	writeSync(file as FileRegular, Buffer.from(x.toString()));
 }
 
 export function printFloat(descriptor: number, x: number) {
-	var file = (descriptor < 0) ? { stdout: true } : files[descriptor] as FileNoError;
-	if (file.stdout) {
+	var file = (descriptor < 0) ? { stdout: true } : files[descriptor] as FileRegular;
+	if (fileIsStdOut(file)) {
 		writeToConsole(x.toString());
 		return;
 	}
 
-	writeSync(file, Buffer.from(x.toString()));
+	writeSync(file as FileRegular, Buffer.from(x.toString()));
 }
 
 export function printNewline(descriptor: number, x: number) {
 	var file = (descriptor < 0) ? { stdout: true } : files[descriptor] as FileNoError;
 
-	if (file.stdout) {
+	if (fileIsStdOut(file)) {
 		writeToConsole("\n");
 		return;
 	}
 
-	writeSync(file, Buffer.from("\n"));
+	writeSync(file as FileRegular, Buffer.from("\n"));
 }
 
 export function reset(length?: number, pointer?: number) {
@@ -464,7 +483,7 @@ export function inputln(
 	if (endOfLine < 0) endOfLine = file.content.length;
 
 	if (file.position2 >= file.content.length) {
-		if (file.stdin) {
+		if (fileIsStdIn(file)) {
 			if (callback) callback();
 			tex_final_end();
 		}
@@ -491,7 +510,7 @@ export function get(descriptor: number, pointer, length) {
 
 	var buffer = new Uint8Array(memory);
 
-	if (file.stdin) {
+	if (fileIsStdIn(file)) {
 		if (file.position >= inputBuffer.length) {
 			buffer[pointer] = 13;
 			file.eof = true;
@@ -501,7 +520,7 @@ export function get(descriptor: number, pointer, length) {
 			buffer[pointer] = inputBuffer[file.position].charCodeAt(0);
 	} else {
 		if (file.descriptor) {
-			if (readSync(file, buffer, pointer, length, file.position) == 0) {
+			if (readSync(file as FileRegular, buffer, pointer, length, file.position) == 0) {
 				buffer[pointer] = 0;
 				file.eof = true;
 				file.eoln = true;
@@ -526,7 +545,7 @@ export function put(descriptor, pointer, length) {
 
 	var buffer = new Uint8Array(memory);
 
-	writeSync(file, buffer, pointer, length);
+	writeSync(file as FileRegular, buffer, pointer, length);
 }
 
 export function tex_final_end() {
