@@ -36,9 +36,11 @@ RUN npm --version
 #### WEB2JS ################################################
 
 # clone web2js and switch to ww-modifications branch
-RUN git clone https://github.com/drgrice1/web2js.git
+# RUN git clone https://github.com/drgrice1/web2js.git
+RUN git clone https://github.com/thecodechemist99/web2js.git
 WORKDIR /code/web2js
-RUN git checkout d78ef1f3ec94520c88049b1de36ecf6be2a65c10
+# RUN git checkout d78ef1f3ec94520c88049b1de36ecf6be2a65c10
+RUN git checkout 995aadd46c93084999699e4a4e1c9aa589488edd
 
 # switch to https:// protocol because github deprecated git://
 # https://github.com/npm/cli/issues/4896#issuecomment-1128472004
