@@ -41,7 +41,7 @@ RUN node --version && \
 RUN git clone https://github.com/thecodechemist99/web2js.git && \
 	cd /code/web2js && \
 	# git checkout d78ef1f3ec94520c88049b1de36ecf6be2a65c10
-	git checkout 995aadd46c93084999699e4a4e1c9aa589488edd
+	git checkout daa7189ec150c384d0b339aaa04dd8955543aeea
 
 # change directory for all subsequent steps
 WORKDIR /code/web2js
